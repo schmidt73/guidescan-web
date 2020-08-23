@@ -18,6 +18,6 @@
 
 (defn web-server [host port]
   (map->WebServer {:host host :port port}))
-    
+
 (defn core-system []
   (component/system-map :web-server (web-server "localhost" 8000)))

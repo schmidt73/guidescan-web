@@ -22,4 +22,4 @@
     (doall (iterator-seq iterator))))
 
 ;; Should output 321
-(count (query-bam "ce11" "chrIV" 911770 916325))
+(str (first (query-bam "ce11" "chrIV" 911770 916325)))

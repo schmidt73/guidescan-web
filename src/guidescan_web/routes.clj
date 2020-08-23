@@ -30,23 +30,19 @@
        (map parse-row)))
 
 (defn query-route
+  "Core of the Guidescan website. Exposes a REST api that takes a
+   query in a variety of forms, parses it, and returns the response
+   as a nested JSON object."
   [req]
-  (let [query (parse-query (:query (:params req)))]
-    query))
+  (let [query (parse-query (:query (:params req)))
+        organism (:organism (:params req))]
+    (->> (map #(apply (partial db/query-bam organism) %) query)
+         (map #(clojure.string/join "\n" %)) 
+         (clojure.string/join "\n\n\n"))))
 
 (defroutes my-routes
-  (POST "/foo" [] "Hello Foo")
-  (GET "/bar" [] "Hello lena")
   (ANY "/query" req (query-route req)))
 
 (def handler
   (-> my-routes
       (wrap-defaults site-defaults)))
-
-(query-route {:params {:query "chrIV:911770-916325"
-                       :genome "ce11" :enzyme "cas9"
-                       :mode "within" :flank-size 1000
-                       :ordering "offtargets" :display "all"
-                       :top-n-results 3}})
-
-
