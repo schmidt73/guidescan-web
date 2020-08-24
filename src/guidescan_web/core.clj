@@ -2,15 +2,16 @@
   (:require
    [com.stuartsierra.component :as component]
    [org.httpkit.server :as server]
+   [guidescan-web.config :as config]
    [guidescan-web.routes :as routes]))
    
-(defrecord WebServer [http-server host port]
+(defrecord WebServer [http-server config host port]
   component/Lifecycle
   (start [this]
     (when (nil? http-server)
       (assoc this :http-server
-             (server/run-server routes/handler {:host host
-                                                :port port}))))
+             (server/run-server (routes/handler config)
+                                {:host host :port port}))))
   (stop [this]
     (when (not (nil? http-server))
       (http-server)
@@ -20,4 +21,7 @@
   (map->WebServer {:host host :port port}))
 
 (defn core-system []
-  (component/system-map :web-server (web-server "localhost" 8000)))
+  (component/system-map
+   :web-server (component/using (web-server "localhost" 8000) [:config])
+   :config (config/create-config "config.edn")))
+

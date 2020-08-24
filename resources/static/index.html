@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+
+    <title>GuideScan 2.0: CRISPR Guide Design</title>
+    <link rel="shortcut icon" href="img/favicon.ico">
+  </head>
+  <body>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item active" aria-current="page">Home</li>
+        <li class="breadcrumb-item"><a href="#">Help</a></li>
+        <li class="breadcrumb-item"><a href="#">Contact</a></li>
+      </ol>
+    </nav>
+
+    <div class="container">
+      <div class="jumbotron border-top"> 
+        <table>
+          <tr>
+            <td valign='top' width=100 rowspan="2">
+              <a href="/"><img src = "img/helix.png" width=100 margin-left20/></a>
+            </td>
+            <td rowspan="2">
+              <h1 style="margin-left: 20px"> GuideScan 2.0</h1>
+              <h3 style="margin-left: 20px"> A generalized CRISPR guideRNA design tool.</h3>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="card bg-light" >
+        <div class="card-body">
+          <h5 class="card-title">sgRNA Design Tool</h5>
+          <form name="query" id="query-form" action="query" method="POST" enctype="multipart/form-data">
+            <div class="form-group row">
+              <label class="col-sm-auto col-form-label" for="organism-selector">Organism:</label>
+              <div class="col-sm-4">
+                <select class="form-control" name="organism" id="organism-selector">
+                  <option>ce11</option>
+                  <option>hg38</option>
+                  <option>mm10</option>
+                  <option>dm6</option>
+                  <option>SacCerv</option>
+                  <option>danRer10</option>
+                </select>
+              </div>
+              <label class="col-sm-auto col-form-label" for="enzyme-selector">Enzyme:</label>
+              <div class="col-sm-4">
+                <select class="form-control" name="enzyme" id="enzyme-selector">
+                  <option>SpCas9</option>
+                  <option>AsCpf1/LbCpf1</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group row mb-n2">
+              <div class="col-lg-2 ml-1">
+                <div class="form-check">
+                  <input class="form-check-input" name="flanking" type="checkbox" id="flanking-checkbox" value="true">
+                  <label class="form-check-label" for="flanking-checkbox">
+                    Flanking:
+                  </label>
+                </div>
+              </div>
+              <div class="col-lg-3">
+                <div class="form-group">
+                  <input type="number" id="flanking-value-input" name="flanking-value" placeholder="1000"></input>
+                </div>
+              </div>
+            </div>
+            <div class="form-group row mt-1">
+              <div class="col-lg-2 ml-1">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="topn-checkbox" name="topn" value="true">
+                  <label class="form-check-label" for="topn-checkbox">
+                    Top N Queries:
+                  </label>
+                </div>
+              </div>
+              <div class="col-lg-3">
+                <div class="form-group">
+                  <input type="number" id="topn-value-input" placeholder="5" name="topn-value"></input>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="query-text-area" style="font-size:1.2em;">
+              Input genomic coordinates as chromosome:start-end or
+              organism appropriate gene symbol, one per line:
+              </label>
+              <textarea class="form-control" id="query-text-area" name="query-text" rows="5">chr4:310000-320000</textarea>
+            </div>
+            <h2 class="font-weight-light text-center mb-3">OR</h2>
+            <div class="custom-file">
+              <input type="file" class="custom-file-input" id="query-file-upload" name="query-file-upload">
+              <label class="custom-file-label file-upload" for="query-file-upload">Submit BED, GFF/GTF, Fasta, or TXT file containing genomic coordinates to query.</label>
+            </div>
+            <div class="d-flex justify-content-center mt-3">
+              <button type="submit" class="btn btn-primary">Submit Query</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script>
+      $('#query-file-upload').on('change',function(){
+          var fileName = $(this).val();
+          $(this).next('.custom-file-label').html(fileName);
+      })
+    </script>
+  </body>
+</html>

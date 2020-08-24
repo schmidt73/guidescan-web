@@ -16,7 +16,8 @@
   "Parses the query for easy look up in the guideRNA database. The
    multimethod dispatches on the type of query, so it should handle raw
    text input, BED files, GFF files, and FASTA files while being
-   extensible in the future.
+   extensible in the future. Raises a ParsingException on failure to
+   parse input.
 
    The method returns output with the following form:
    [[chrX1 start-1 end-1] [chrX2 start-2 end-2] ...]"
@@ -33,16 +34,33 @@
   "Core of the Guidescan website. Exposes a REST api that takes a
    query in a variety of forms, parses it, and returns the response
    as a nested JSON object."
-  [req]
+  [config req]
+  (try
+    (catch Parse))
   (let [query (parse-query (:query (:params req)))
         organism (:organism (:params req))]
-    (->> (map #(apply (partial db/query-bam organism) %) query)
+    (->> (map #(apply (partial db/query-bam config organism) %) query)
          (map #(clojure.string/join "\n" %)) 
          (clojure.string/join "\n\n\n"))))
 
-(defroutes my-routes
-  (ANY "/query" req (query-route req)))
+(defn create-routes
+  [config]
+  (routes
+   (ANY "/query" req (query-route config req))
+   (GET "/" [] ())))
 
-(def handler
-  (-> my-routes
-      (wrap-defaults site-defaults)))
+(def www-defaults
+  (-> site-defaults
+    (assoc-in [:static :resources] "static")
+    (assoc-in [:security :anti-forgery] false)))
+
+(defn wrap-dir-index [handler]
+  (fn [req]
+    (handler
+     (update-in req [:uri]
+                #(if (= "/" %) "/index.html" %)))))
+
+(defn handler [config]
+  (-> (create-routes config)
+      (wrap-defaults www-defaults)
+      (wrap-dir-index)))

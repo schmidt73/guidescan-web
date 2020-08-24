@@ -1,0 +1,17 @@
+{:available-organisms ["hg38" "mm10" "dm6" "sacCer3""danRer10" "ce11"]
+ :genome-map {"hg38"     "not_implemented"
+              "mm10"     "not_implemented"
+              "dm6"      "not_implemented"
+              "sacCer3"  "not_implemented"
+              "danRer10" "not_implemented"
+              "ce11"     "not_implemented"}
+ :grna-database-path-prefix "/home/schmidt73/Desktop/guidescan/guidescan-website/database"
+ :grna-database-path-map {"hg38"     "not_implemented"
+                          "mm10"     "not_implemented"
+                          "dm6"      "not_implemented"
+                          "sacCer3"  "not_implemented"
+                          "danRer10" "not_implemented"
+                          "ce11"     "cas9_ce11_all_guides.bam"}}
+                     
+                     
+                 
