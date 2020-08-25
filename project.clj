@@ -11,7 +11,7 @@
                  [ring/ring-defaults "0.3.2"]
                  [ring "1.8.1"]]
   :repl-options {:init-ns guidescan-web.core}
-  :profiles {:user
-             {:dependencies [[hashp/hashp "0.2.0"]
-                             [reloaded.repl "0.2.4"]]}})
+  :profiles {:dev {:resource-paths ["test/resources"]}
+             :user {:dependencies [[hashp/hashp "0.2.0"]
+                                   [reloaded.repl "0.2.4"]]}})
   
