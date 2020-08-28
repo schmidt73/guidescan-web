@@ -9,7 +9,6 @@
                  [http-kit "2.4.0"]
                  [compojure "1.6.2"]
                  [ring/ring-defaults "0.3.2"]
-                 [clj-python/libpython-clj "1.45"]
                  [ring "1.8.1"]]
   :repl-options {:init-ns guidescan-web.core}
   :profiles {:dev {:resource-paths ["test/resources"]}

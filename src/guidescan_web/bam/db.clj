@@ -94,18 +94,3 @@
                                  false)]
       (let [bam-records (doall (iterator-seq iterator))]
         (vec (map #(parse-query-result config organism %) bam-records))))))
-
-;; Putting into GIT so that it becomes useful later.
-;; 
-;; (defn get-genome-structure
-;;   "Finds the genome structure associated with the current
-;;   bam-record" 
-;;   [bam-record]
-;;   (as-> (.getHeader bam-record) hdr
-;;         (.getComments hdr)
-;;         (nth hdr 3)
-;;         (subs hdr 4)
-;;         (ast/literal_eval hdr)
-;;         (py/->jvm hdr)
-;;         (get hdr "genome")))
-
