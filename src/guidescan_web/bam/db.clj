@@ -74,7 +74,6 @@
           :cutting-efficiency (.getAttribute bam-record "ds")}
          (when-let [barray (.getAttribute bam-record "of")]
            (let [genome (config/get-genome-structure config organism)]
-             (prn genome)
              {:off-targets (parse-offtarget-info genome barray)}))))
 
 (defn- load-bam-reader
@@ -84,10 +83,12 @@
 
 (defn query-bam-grna-db
   "Queries the BAM gRNA database, and parses the output into
-  a sequence of gRNA maps that overlap with the query."
+  a sequence of gRNA maps that overlap with the query.
+
+  Can throw an IllegalArgumentException if the chromosone
+  is not in the index."
   [config organism chromosone start-pos end-pos]
   (let [grna-db (config/get-grna-db-path config organism)]
-    (prn grna-db)
     (with-open [bam-reader (load-bam-reader
                             (io/file grna-db))
                 iterator (.query bam-reader chromosone start-pos end-pos

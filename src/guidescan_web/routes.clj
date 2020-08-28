@@ -6,12 +6,22 @@
   (:require
    [ring.middleware.defaults :refer :all]
    [compojure.core :refer :all]
+   [guidescan-web.query.jobs :as jobs]
    [guidescan-web.query.handler :refer [query-handler]]))
 
+(defn get-job-status
+  [job-queue id]
+  (if-let [status (jobs/get-job-status job-queue id)]
+    (if (= status :completed)
+      (str (jobs/get-job job-queue id))
+      "Job is still pending... come back later!")
+    (str "There is no job with ID: " id)))
+
 (defn create-routes
-  [config]
+  [config job-queue]
   (routes
-   (ANY "/query" req (query-handler config req))
+   (ANY "/query" req (query-handler job-queue req))
+   (GET "/jobs/:id{[0-9]+}" [id] (get-job-status job-queue (Integer/parseInt id)))
    (GET "/" [] ())))
 
 (def www-defaults
@@ -25,7 +35,7 @@
      (update-in req [:uri]
                 #(if (= "/" %) "/index.html" %)))))
 
-(defn handler [config]
-  (-> (create-routes config)
+(defn handler [config job-queue]
+  (-> (create-routes config job-queue)
       (wrap-defaults www-defaults)
       (wrap-dir-index)))
