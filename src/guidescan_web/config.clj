@@ -21,3 +21,7 @@
      (:grna-database-path-prefix (:config config))
      (get (:grna-database-path-map (:config config))
           organism))))
+
+(defn get-genome-structure
+  [config organism]
+  (get-in (:config config) [:genome-structure-map organism]))

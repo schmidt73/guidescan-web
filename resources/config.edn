@@ -11,7 +11,14 @@
                           "dm6"      "not_implemented"
                           "sacCer3"  "not_implemented"
                           "danRer10" "not_implemented"
-                          "ce11"     "cas9_ce11_all_guides.bam"}}
-                     
+                          "ce11"     "cas9_ce11_all_guides.bam"}
+ :genome-structure-map {"ce11" [["chrI" 15072434]
+                                ["chrII" 15279421]
+                                ["chrIII" 13783801]
+                                ["chrIV" 17493829]
+                                ["chrM" 13794]
+                                ["chrV" 20924180]
+                                ["chrX" 17718942]]}}
+                    
                      
                  

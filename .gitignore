@@ -12,3 +12,4 @@ pom.xml.asc
 /.prepl-port
 .hgignore
 .hg/
+test/resources/database/*

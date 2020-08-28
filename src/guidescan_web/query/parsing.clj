@@ -1,5 +1,5 @@
 (ns guidescan-web.query.parsing
-  "This namespace exposes the method for parsing user queries into a
+  "This namespace exposes an interface for parsing user queries into a
   format suitable for processing.
 
   It assumes the spec located here for BED files:

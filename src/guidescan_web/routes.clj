@@ -6,30 +6,12 @@
   (:require
    [ring.middleware.defaults :refer :all]
    [compojure.core :refer :all]
-   [guidescan-web.query.parsing :as query-parsing]
-   [guidescan-web.bam.db :as db]))
-
-(defn newline-to-br [s]
-  (clojure.string/replace s #"\r\n|\n|\r" "<br />\n"))
-
-(defn query-route
-  "Core of the Guidescan website. Exposes a REST api that takes a query
-  in a variety of forms, parses it, and returns the response as a
-  nested JSON object."
-  [config req]
-  (let [result (query-parsing/parse-query (:params req))
-        organism (:organism (:params req))]
-    (if-let [query (:success result)]
-      (->> (map #(apply (partial db/query-bam config organism) %) query)
-           (map #(clojure.string/join "\n" %)) 
-           (clojure.string/join "\n\n\n")
-           (newline-to-br))
-      (newline-to-br (:failure result)))))
+   [guidescan-web.query.handler :refer [query-handler]]))
 
 (defn create-routes
   [config]
   (routes
-   (ANY "/query" req (query-route config req))
+   (ANY "/query" req (query-handler config req))
    (GET "/" [] ())))
 
 (def www-defaults

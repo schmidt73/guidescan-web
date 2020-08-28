@@ -1,0 +1,11 @@
+{:available-organisms ["ce11"]
+ :genome-map {"ce11" "not_implemented"}
+ :grna-database-path-prefix "test/resources/database/"
+ :grna-database-path-map {"ce11" "cas9_ce11_all_guides.bam"}
+ :genome-structure-map {"ce11" [["chrI" 15072434]
+                                ["chrII" 15279421]
+                                ["chrIII" 13783801]
+                                ["chrIV" 17493829]
+                                ["chrM" 13794]
+                                ["chrV" 20924180]
+                                ["chrX" 17718942]]}}
