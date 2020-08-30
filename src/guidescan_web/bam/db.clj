@@ -6,7 +6,10 @@
   The words \"genome\" and \"organism\" are used essentially
   interchangeably throughout the code."
   (:require
+   [failjure.core :as f]
    [guidescan-web.config :as config]
+   [guidescan-web.grna :as grna]
+   [clojure.spec.alpha :as s]
    [clojure.java.io :as io]))
 
 (defn- get-offtarget-delim
@@ -70,8 +73,8 @@
           :start (.getAlignmentStart bam-record)
           :end (.getAlignmentEnd bam-record)
           :direction (if (.getReadNegativeStrandFlag bam-record) :negative :positive)
-          :specificity (.getAttribute bam-record "cs")
-          :cutting-efficiency (.getAttribute bam-record "ds")}
+          :specificity (Float/parseFloat (.getAttribute bam-record "cs"))
+          :cutting-efficiency (Float/parseFloat (.getAttribute bam-record "ds"))}
          (when-let [barray (.getAttribute bam-record "of")]
            (let [genome (config/get-genome-structure config organism)]
              {:off-targets (parse-offtarget-info genome barray)}))))
@@ -83,15 +86,17 @@
 
 (defn query-bam-grna-db
   "Queries the BAM gRNA database, and parses the output into
-  a sequence of gRNA maps that overlap with the query.
+  a sequence of gRNAs that overlap with the query.
 
-  Can throw an IllegalArgumentException if the chromosone
-  is not in the index."
+  Will return a failure object if the chromosone is not in the index."
   [config organism chromosone start-pos end-pos]
   (let [grna-db (config/get-grna-db-path config organism)]
-    (with-open [bam-reader (load-bam-reader
-                            (io/file grna-db))
-                iterator (.query bam-reader chromosone start-pos end-pos
-                                 false)]
-      (let [bam-records (doall (iterator-seq iterator))]
-        (vec (map #(parse-query-result config organism %) bam-records))))))
+    (try
+      (with-open [bam-reader (load-bam-reader
+                              (io/file grna-db))
+                  iterator (.query bam-reader chromosone start-pos end-pos
+                                   false)]
+        (let [bam-records (doall (iterator-seq iterator))]
+          (vec (map #(parse-query-result config organism %) bam-records))))
+      (catch java.lang.IllegalArgumentException _
+          (f/fail (str "Invalid chromosome \"" chromosone "\" for organism."))))))

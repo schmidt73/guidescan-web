@@ -6,22 +6,21 @@
   (:require
    [ring.middleware.defaults :refer :all]
    [compojure.core :refer :all]
-   [guidescan-web.query.jobs :as jobs]
-   [guidescan-web.query.handler :refer [query-handler]]))
+   [guidescan-web.query.jobs :as jobs]))
 
-(defn get-job-status
-  [job-queue id]
-  (if-let [status (jobs/get-job-status job-queue id)]
-    (if (= status :completed)
-      (str (jobs/get-job job-queue id))
-      "Job is still pending... come back later!")
-    (str "There is no job with ID: " id)))
+(defn query-handler
+  "Core of the Guidescan website. Exposes a REST api that takes a query
+  and returns a job queue submission as output."
+  [job-queue req]
+  (let [id (jobs/submit-query job-queue req)]
+    (str "<html><body>Your job ID is: " id "<br />"
+         "Go to the result <a href=\"/jobs/" id "\">here</a>"
+          "</body></html>")))
 
 (defn create-routes
   [config job-queue]
   (routes
    (ANY "/query" req (query-handler job-queue req))
-   (GET "/jobs/:id{[0-9]+}" [id] (get-job-status job-queue (Integer/parseInt id)))
    (GET "/" [] ())))
 
 (def www-defaults

@@ -1,6 +1,7 @@
 (ns guidescan-web.query.jobs-test
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
+            [failjure.core :as f]
             [guidescan-web.mock :as mock]
             [guidescan-web.query.jobs :as jobs]))
 
@@ -37,7 +38,7 @@
     (mock/with-component-or-system system (mock/test-system-no-www)
       (let [job-queue (:job-queue system)
             job-id (jobs/submit-query job-queue test-params-good)]
-        (is (nil? (:error (jobs/get-job job-queue job-id))))))))
+        (is (not (f/failed? (jobs/get-query job-queue job-id))))))))
 
 (deftest bad-job-queue-submission-chromosone
   (testing "Testing job queue submission routine for error because of
@@ -45,7 +46,7 @@
     (mock/with-component-or-system system (mock/test-system-no-www)
       (let [job-queue (:job-queue system)
             job-id (jobs/submit-query job-queue test-params-bad-chromosone)]
-        (is (some? (:error (jobs/get-job job-queue job-id))))))))
+        (is (f/failed? (jobs/get-query job-queue job-id)))))))
 
 (deftest bad-job-queue-submission-parsing-1
   (testing "Testing job queue submission routine for error because of
@@ -53,7 +54,7 @@
     (mock/with-component-or-system system (mock/test-system-no-www)
       (let [job-queue (:job-queue system)
             job-id (jobs/submit-query job-queue test-params-bad-parse-1)]
-        (is (some? (:error (jobs/get-job job-queue job-id))))))))
+        (is (f/failed? (jobs/get-query job-queue job-id)))))))
 
 (deftest bad-job-queue-submission-parsing-2
   (testing "Testing job queue submission routine for error because of
@@ -61,4 +62,4 @@
     (mock/with-component-or-system system (mock/test-system-no-www)
       (let [job-queue (:job-queue system)
             job-id (jobs/submit-query job-queue test-params-bad-parse-2)]
-        (is (some? (:error (jobs/get-job job-queue job-id))))))))
+        (is (f/failed? (jobs/get-query job-queue job-id)))))))

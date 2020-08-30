@@ -1,6 +1,7 @@
 (ns guidescan-web.query.jobs
-  (:require [guidescan-web.query.parsing :refer [parse-query]]
-            [guidescan-web.bam.db :as db]
+  "This namespaces exposes a JobQueue component that asynchronously performs
+  gRNA query jobs in the background."
+  (:require [guidescan-web.query.process :refer [process-query]]
             [com.stuartsierra.component :as component]))
 
 (defrecord JobQueue [config jobs]
@@ -14,37 +15,14 @@
   []
   (map->JobQueue {}))
   
-(defn- perform-parsed-query
-  [config organism parsed-queries]
-  (loop [idx 0 results []]
-    (let [query (nth parsed-queries idx)
-          result (try
-                   (apply db/query-bam-grna-db config organism query)
-                   (catch java.lang.IllegalArgumentException _
-                      {:error (str "Invalid chromosone name: " (first query))}))]
-      (if (or (some? (:error result))
-              (= (+ 1 idx) (count parsed-queries)))
-        result
-        (recur (inc idx) (conj results result))))))
-
-(defn- perform-query
-  "Performs the query, returning either a response vector or an error
-  message."
-  [config req]
-  (let [result (parse-query (:params req))
-        organism (:organism (:params req))]
-    (if-let [query (:success result)] ; else branch = parse error
-      (perform-parsed-query config organism query)
-      {:error (:failure result)})))
-
 (defn submit-query
-  "Submits the query to the job query and returns its ID."
+  "Submits the query to the job quere and returns its ID."
   [job-queue req]
   (dosync
    (let [jobs (:jobs job-queue)
          job-id (:id-counter @jobs)
          config (:config job-queue)
-         future-obj (future-call #(perform-query config req))]
+         future-obj (future-call #(process-query config req))]
       (ref-set jobs
         (assoc @jobs
                :id-counter (inc job-id)
@@ -52,16 +30,16 @@
                        :timestamp (java.time.LocalDateTime/now)}))
       job-id)))
 
-(defn get-job-status
-  "Gets the status for a job. Returns nil if job does not exist."
+(defn get-query-status
+  "Gets the status for a query. Returns nil if job-id does not exist."
   [job-queue id]
   (if-let [job (get @(:jobs job-queue) id)]
     (if (future-done? (:future job))
       :completed
       :pending)))
 
-(defn get-job
-  "Gets the result of a job (blocking). Returns nil if job does not
+(defn get-query
+  "Gets the result of a query (blocking). Returns nil if job does not
   exist."
   [job-queue id]
   (if-let [job (get @(:jobs job-queue) id)]
