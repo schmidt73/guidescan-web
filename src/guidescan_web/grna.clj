@@ -24,9 +24,13 @@
    :opt-un [::off-targets]))
           
 (defn num-off-targets
-  "Returns the number of off-targets."
-  [grna]
-  (reduce #(+ %1 (count (:coords %2))) 0 (:off-targets grna)))
+  "Returns the number of off-targets, optionally only considering
+  ones at a fixed distance k."
+  ([grna]
+   (reduce #(+ %1 (count (:coords %2))) 0 (:off-targets grna)))
+  ([grna k]
+   (reduce #(+ %1 (if (= k (:distance %2)) (count (:coords %2)) 0))
+           0 (:off-targets grna))))
 
 (s/fdef num-off-targets
   :args (s/cat :grna ::grna)

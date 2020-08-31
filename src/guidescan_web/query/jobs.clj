@@ -2,6 +2,7 @@
   "This namespaces exposes a JobQueue component that asynchronously performs
   gRNA query jobs in the background."
   (:require [guidescan-web.query.process :refer [process-query]]
+            [failjure.core :as f]
             [com.stuartsierra.component :as component]))
 
 (defrecord JobQueue [config jobs]
@@ -35,7 +36,9 @@
   [job-queue id]
   (if-let [job (get @(:jobs job-queue) id)]
     (if (future-done? (:future job))
-      :completed
+      (if (f/failed? @(:future job))
+        :failed
+        :completed)
       :pending)))
 
 (defn get-query

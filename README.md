@@ -1,5 +1,7 @@
 # guidescan-web
 
+![Guidescan 2.0 Webpage](https://i.imgur.com/KEps36y.png)
+
 This project is a complete rewrite of the Guidescan website source
 code in Clojure. The goal is to be able to quickly implement new
 features. I will update my progress here as I go.
@@ -12,7 +14,7 @@ features. I will update my progress here as I go.
 - SSL
 - Simple deployment to cloud
 
-## Unsupported Features
+## Currently Unsupported Features
 
 - Flanking queries (easy)
 - Annotations (???)
@@ -31,8 +33,8 @@ performed.
 
 ### Bug #1:
 
-Number of off-targets reported is incorrect! For example,
-the guidRNA:
+Number of off-targets reported is incorrect. For example,
+the guideRNA:
 
 chrV:911752-911774:-	TGAAAAATTTCGTAAAAAAT NGG	
 

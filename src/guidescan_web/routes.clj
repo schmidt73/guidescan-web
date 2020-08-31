@@ -17,18 +17,20 @@
   "Core of the Guidescan website. Exposes a REST api that takes a query
   and returns a job queue submission as output."
   [job-queue req]
+  (prn req)
   (let [id (jobs/submit-query job-queue req)]
-    (str "<html><body>Your job ID is: " id "<br />"
-         "Go to the result <a href=\"/job/show/" id "\">here</a>"
-          "</body></html>")))
+    (selmer/render-file "static/query.html" {:job-id id})))
 
 (defn job-show-handler
   "Displays the results of a job."
   [job-queue job-id]
-  (selmer/render-file
-   "static/jobs.html"
-   {:status (jobs/get-query-status job-queue job-id)
-    :job-id job-id}))
+  (let [status (jobs/get-query-status job-queue job-id)]
+    (selmer/render-file
+      "static/jobs.html"
+      (assoc
+       {:status status :job-id job-id}
+       :error-message
+       (when (= status :failed) (f/message (jobs/get-query job-queue job-id)))))))
 
 (defn job-get-handler
   [job-queue format job-id]

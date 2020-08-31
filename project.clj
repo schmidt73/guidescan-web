@@ -1,9 +1,9 @@
 (defproject guidescan-web "2.0"
   :description "Version 2.0 of the Guidescan website."
   :url "http://guidescan.com/"
-  :license {:name "Unknown"
-            :url "Unkown"}
+  :author "Henri Schmidt"
   :dependencies [[org.clojure/clojure "1.10.1"]
+                 [org.clojure/data.csv "1.0.0"]
                  [com.github.samtools/htsjdk "2.23.0"]
                  [com.stuartsierra/component "1.0.0"]
                  [http-kit "2.4.0"]

@@ -9,29 +9,25 @@
   {:params {:query-text "chrV:91177-916325"
             :organism "ce11" :enzyme "cas9"
             :mode "within" :flank-size 1000
-            :ordering "offtargets" :display "all"
-            :top-n-results 3}})
+            :ordering "offtargets" :display "all"}})
 
 (def test-params-bad-chromosone
   {:params {:query-text "chr1:91177-916325"
             :organism "ce11" :enzyme "cas9"
             :mode "within" :flank-size 1000
-            :ordering "offtargets" :display "all"
-            :top-n-results 3}})
+            :ordering "offtargets" :display "all"}})
 
 (def test-params-bad-parse-1
   {:params {:query-text "chr1:91177916325"
             :organism "ce11" :enzyme "cas9"
             :mode "within" :flank-size 1000
-            :ordering "offtargets" :display "all"
-            :top-n-results 3}})
+            :ordering "offtargets" :display "all"}})
 
 (def test-params-bad-parse-2
   {:params {:query-text "chr1:91177-91a325"
             :organism "ce11" :enzyme "cas9"
             :mode "within" :flank-size 1000
-            :ordering "offtargets" :display "all"
-            :top-n-results 3}})
+            :ordering "offtargets" :display "all"}})
 
 (deftest successful-job-queue-submission
   (testing "Testing job queue submission routine for success."

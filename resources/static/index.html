@@ -34,6 +34,13 @@
           </tr>
         </table>
       </div>
+      <div class="card bg-light"> 
+        <div class="card-body">
+          <h4 class="text-danger" style="margin-left: 20px">Note: Please
+            do not run large automated jobs (i.e. using curl) against this
+            website. </h4>
+        </div>
+      </div>
     </div>
 
     <div class="container">
@@ -72,7 +79,7 @@
               </div>
               <div class="col-lg-3">
                 <div class="form-group">
-                  <input type="number" id="flanking-value-input" name="flanking-value" placeholder="1000"></input>
+                  <input type="number" id="flanking-value-input" name="flanking-value" value="1000"></input>
                 </div>
               </div>
             </div>
@@ -87,7 +94,7 @@
               </div>
               <div class="col-lg-3">
                 <div class="form-group">
-                  <input type="number" id="topn-value-input" placeholder="5" name="topn-value"></input>
+                  <input type="number" id="topn-value-input" value="5" name="topn-value">
                 </div>
               </div>
             </div>

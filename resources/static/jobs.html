@@ -40,20 +40,40 @@
       <div class="col d-flex justify-content-center">
         <div class="card bg-light mb-5">
           <div class="card-body">
-            <h2 class="card-title text-center">gRNA Query Job Status</h2>
-            <hr></hr>
             {% if status = :completed %}
+            <h2 class="card-title text-center">Query Job Status</h2>
+            <hr></hr>
+
             <p class="text-success text-center" style="font-size: 1.5em;">
               Job {{job-id}} complete.
             </p>
             <div class="row justify-content-center">
-              <button type="button" class="btn btn-info mx-4">Download results</button>
               <button type="button" class="btn btn-success mx-4" onclick="show_results();">Show results</button>
+              <div class="dropdown">
+                <button class="btn mx-4 btn-info dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  Download results
+                </button>
+                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                  <a class="dropdown-item" href="/job/get/csv/{{job-id}}" download="results.csv">as csv...</a>
+                  <a class="dropdown-item" href="/job/get/json/{{job-id}}" download="results.json">as json...</a>
+                </div>
+              </div>
             </div>
             {% elif status = :pending %}
+            <h2 class="card-title text-center">Query Job Status</h2>
+            <hr></hr>
             <p class="text-warning text-center" style="font-size: 1.5em;">
               Job {{job-id}} is still pending. Please come back later...
             </p>
+            {% elif status = :failed %}
+            <p class="text-danger text-center" style="font-size: 1.5em;">
+              Job {{job-id}} failed.
+            </p>
+            <pre class="border bg-white mb-n4"> 
+              <code >
+                {{error-message}}
+              </code>
+            </pre>
             {% else %}
             <p class="text-danger text-center" style="font-size: 1.5em;">
               Job {{job-id}} was never submitted to the queue, please
@@ -92,9 +112,6 @@
     <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.17.1/dist/bootstrap-table.min.css">
     <script src="https://unpkg.com/bootstrap-table@1.17.1/dist/bootstrap-table.min.js"></script>
 
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4/dt-1.10.21/datatables.min.css"/>
-    <script type="text/javascript" src="https://cdn.datatables.net/v/bs4/dt-1.10.21/datatables.min.js"></script>
-
     <!-- Custom JS to load results -->
     <script type="text/javascript">
       var shown_results = false;
@@ -126,7 +143,8 @@
               ots2 = (2 in ots) ? ots[2] : 0;
               ots3 = (3 in ots) ? ots[3] : 0;
               
-              coordinate = query[0] + ":" + grna['start'] + '-' + grna['end'];
+              direction = grna["direction"] == "positive" ? "+" : "-";
+              coordinate = query[0] + ":" + grna['start'] + '-' + grna['end'] + ":" + direction;
               num_ots = ots2 + ots3
               ots = '2:' + ots2 + ' | ' + '3:' + ots3;
 

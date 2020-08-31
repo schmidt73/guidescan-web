@@ -9,8 +9,7 @@
   {:params {:query-text "chrV:911700-911800"
             :organism "ce11" :enzyme "cas9"
             :mode "within" :flank-size 1000
-            :ordering "offtargets" :display "all"
-            :top-n-results 3}})
+            :ordering "offtargets" :display "all"}})
 
 (deftest successful-query-processing
   (testing "Testing that a query is successfully processed."

@@ -21,19 +21,23 @@
 (defn sort-results
   "Sorts the results of a gRNA query according to the ordering
   specified in the user request map."
-  [ordering results [chromosone start-pos end-pos]]
+  [ordering grnas [chromosone start-pos end-pos]]
   (case ordering
-    "specificity" (sort-by :specificity results)
-    "cutting-efficiency" (sort-by :cutting-efficiency results)
-    (sort-by grna/num-off-targets results)))
+    "specificity" (sort-by :specificity grnas)
+    "cutting-efficiency" (sort-by :cutting-efficiency grnas)
+    (sort-by grna/num-off-targets grnas)))
 
 (defn filter-results
   "Filters the results of a gRNA query according to the parameters
   specified in the user request map."
-  [req results [chromosone start-pos end-pos]]
-  (->> results
+  [req grnas [chromosone start-pos end-pos]]
+  (->> grnas
        (filter #(and (<= start-pos (:start %))
                      (>= end-pos (:end %))))))
+
+(defn keep-only-top-n
+  [top-nvalue grnas]
+  (vec (take top-nvalue grnas)))
 
 (defn process-query
   "Process the query, returning either a response vector containing the
@@ -41,12 +45,17 @@
   object with an appropriate message."
   [config req]
   (let [parsed-query (parse-query (:params req))
-        organism (:organism (:params req))]
+        organism (:organism (:params req))
+        topn-value (:topn-value (:params req))
+        topn? (and (some? topn-value)
+                   (boolean (re-find #"[0-9]+" topn-value))
+                   (= "true" (:topn (:params req))))]
     (if-let [query (:success parsed-query)] ; else branch = parse error
       (f/attempt-all
-       [results (process-parsed-queries config organism query)]
-       (->> results
-            (map #(filter-results req %2 %1) query)
-            (map #(sort-results (:ordering req) %2 %1) query)
-            (map vector query)))
+       [grnas (process-parsed-queries config organism query)]
+       (cond->> grnas
+            true (map #(filter-results req %2 %1) query)
+            true (map #(sort-results (:ordering req) %2 %1) query)
+            topn? (map #(keep-only-top-n (Integer/parseInt topn-value) %))
+            true (map vector query)))
       (f/fail (:failure parsed-query)))))
