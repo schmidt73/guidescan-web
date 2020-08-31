@@ -6,6 +6,11 @@
   (:require
    [ring.middleware.defaults :refer :all]
    [compojure.core :refer :all]
+   [selmer.parser :as selmer]
+   [failjure.core :as f]
+   [cheshire.core :as cheshire]
+   [ring.util.response :refer [content-type response]]
+   [guidescan-web.query.render :as render]
    [guidescan-web.query.jobs :as jobs]))
 
 (defn query-handler
@@ -14,13 +19,34 @@
   [job-queue req]
   (let [id (jobs/submit-query job-queue req)]
     (str "<html><body>Your job ID is: " id "<br />"
-         "Go to the result <a href=\"/jobs/" id "\">here</a>"
+         "Go to the result <a href=\"/job/show/" id "\">here</a>"
           "</body></html>")))
+
+(defn job-show-handler
+  "Displays the results of a job."
+  [job-queue job-id]
+  (selmer/render-file
+   "static/jobs.html"
+   {:status (jobs/get-query-status job-queue job-id)
+    :job-id job-id}))
+
+(defn job-get-handler
+  [job-queue format job-id]
+  (if (= :completed (jobs/get-query-status job-queue job-id))
+    (let [result (jobs/get-query job-queue job-id)]
+       (when (f/ok? result)
+         (content-type
+          (response (render/render-query-result format result))
+          (render/get-content-type format))))))
 
 (defn create-routes
   [config job-queue]
   (routes
    (ANY "/query" req (query-handler job-queue req))
+   (GET "/job/show/:id{[0-9]+}" [id]
+        (job-show-handler job-queue (Integer/parseInt id)))
+   (GET "/job/get/:format{csv|json}/:id{[0-9]+}" [format id]
+        (job-get-handler job-queue (keyword format) (Integer/parseInt id)))
    (GET "/" [] ())))
 
 (def www-defaults

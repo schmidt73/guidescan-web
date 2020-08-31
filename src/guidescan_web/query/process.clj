@@ -47,5 +47,6 @@
        [results (process-parsed-queries config organism query)]
        (->> results
             (map #(filter-results req %2 %1) query)
-            (map #(sort-results (:ordering req) %2 %1) query)))
+            (map #(sort-results (:ordering req) %2 %1) query)
+            (map vector query)))
       (f/fail (:failure parsed-query)))))

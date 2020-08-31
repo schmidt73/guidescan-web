@@ -15,7 +15,7 @@
 (deftest successful-query-processing
   (testing "Testing that a query is successfully processed."
     (mock/with-component-or-system config (mock/test-config)
-      (let [[processed-grnas] (process/process-query config test-params-good)]
+      (let [[[_ processed-grnas]] (process/process-query config test-params-good)]
         (is (and
              (= 6 (count processed-grnas))
              (= 0 (grna/num-off-targets (nth processed-grnas 0)))
