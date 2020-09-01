@@ -17,8 +17,6 @@
   :profiles {:dev {:resource-paths ["test/resources"]
                    :source-paths ["src" "dev" "test"]
                    :repl-options {:init-ns user}
-                   :dependencies [[hashp/hashp "0.2.0"]
-                                  [reloaded.repl "0.2.4"]
-                                  [org.clojure/tools.namespace "1.0.0"]]}})
+                   :dependencies [[org.clojure/tools.namespace "1.0.0"]]}})
 
   
