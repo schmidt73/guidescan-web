@@ -14,8 +14,11 @@
                  [selmer "1.12.28"]
                  [ring "1.8.1"]]
   :main guidescan-web.core
-  :repl-options {:init-ns guidescan-web.core}
-  :profiles {:dev {:resource-paths ["test/resources"]}
-             :user {:dependencies [[hashp/hashp "0.2.0"]
-                                   [reloaded.repl "0.2.4"]]}})
+  :profiles {:dev {:resource-paths ["test/resources"]
+                   :source-paths ["src" "dev" "test"]
+                   :repl-options {:init-ns user}
+                   :dependencies [[hashp/hashp "0.2.0"]
+                                  [reloaded.repl "0.2.4"]
+                                  [org.clojure/tools.namespace "1.0.0"]]}})
+
   
