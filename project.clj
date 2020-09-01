@@ -13,6 +13,7 @@
                  [failjure "2.0.0"]
                  [selmer "1.12.28"]
                  [ring "1.8.1"]]
+  :main guidescan-web.core
   :repl-options {:init-ns guidescan-web.core}
   :profiles {:dev {:resource-paths ["test/resources"]}
              :user {:dependencies [[hashp/hashp "0.2.0"]

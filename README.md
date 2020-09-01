@@ -6,6 +6,11 @@ This project is a complete rewrite of the Guidescan website source
 code in Clojure. The goal is to be able to quickly implement new
 features. I will update my progress here as I go.
 
+## Requirements
+
+The only requirement for the project is Java >= 1.8.0 and the Leiningen
+package manager for Clojure.
+
 ## New Features
 
 - BED and GTF/GFF file upload support

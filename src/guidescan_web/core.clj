@@ -27,3 +27,13 @@
    :job-queue (component/using (jobs/create-job-queue) [:config])
    :config (config/create-config "config.edn")))
 
+(defn -main
+  [& args]
+  (let [system (component/start (core-system))
+        lock (promise)
+        stop (fn []
+               (component/stop system)
+               (deliver lock :release))]
+    (.addShutdownHook (Runtime/getRuntime) (Thread. stop))
+    @lock
+    (System/exit 0)))
