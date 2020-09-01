@@ -1,20 +1,19 @@
 (ns user
   (:require [clojure.tools.namespace.repl :refer [refresh refresh-all disable-reload!]]
-            [com.stuartsierra.component :as component]
-            [guidescan-web.core :refer [core-system]]))
+            [guidescan-web.core :refer [core-system]]
+            [com.stuartsierra.component :as component]))
 
-(disable-reload!)
-
-(def system nil)
+(def system (core-system))
+(def state :ready)
 
 (defn start []
-  (alter-var-root #'system component/start))
+  (alter-var-root #'system component/start)
+  (alter-var-root #'state (constantly :started)))
 
 (defn stop []
   (alter-var-root #'system component/stop)
-  (alter-var-root #'system (constantly nil)))
+  (alter-var-root #'state (constantly :stopped)))
 
 (defn reset-all []
-  (when (some? system) (stop))
-  (alter-var-root #'system (fn [_] (core-system)))
+  (when (= :started state) (stop))
   (refresh-all :after 'user/start))

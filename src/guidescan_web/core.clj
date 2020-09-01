@@ -2,6 +2,7 @@
   (:require
    [com.stuartsierra.component :as component]
    [org.httpkit.server :as server]
+   [taoensso.timbre :as timbre]
    [guidescan-web.query.jobs :as jobs]
    [guidescan-web.config :as config]
    [guidescan-web.routes :as routes]))
@@ -9,12 +10,14 @@
 (defrecord WebServer [http-server config job-queue host port]
   component/Lifecycle
   (start [this]
+    (timbre/info "Starting webserver component.")
     (when (nil? http-server)
       (assoc this :http-server
              (server/run-server (routes/handler config job-queue)
                                 {:host host :port port}))))
   (stop [this]
     (when (not (nil? http-server))
+      (timbre/info "Stopping webserver component.")
       (http-server)
       (assoc this :http-server nil))))
 

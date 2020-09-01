@@ -10,6 +10,7 @@
    [failjure.core :as f]
    [cheshire.core :as cheshire]
    [ring.util.response :refer [content-type response]]
+   [taoensso.timbre :as timbre]
    [guidescan-web.query.render :as render]
    [guidescan-web.query.jobs :as jobs]))
 
@@ -17,8 +18,8 @@
   "Core of the Guidescan website. Exposes a REST api that takes a query
   and returns a job queue submission as output."
   [job-queue req]
-  (prn req)
   (let [id (jobs/submit-query job-queue req)]
+    (timbre/info "Submited job for query from " (:remote-addr req))
     (selmer/render-file "static/query.html" {:job-id id})))
 
 (defn job-show-handler

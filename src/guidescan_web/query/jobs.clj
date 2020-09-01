@@ -3,14 +3,17 @@
   gRNA query jobs in the background."
   (:require [guidescan-web.query.process :refer [process-query]]
             [failjure.core :as f]
+            [taoensso.timbre :as timbre]
             [com.stuartsierra.component :as component]))
 
 (defrecord JobQueue [config jobs]
   component/Lifecycle
   (start [this]
     (when (nil? jobs)
+      (timbre/info "Initializing job queue.")
       (assoc this :jobs (ref {:id-counter 0})))) ; could have used atom but easier to use ref
-  (stop [this]))
+  (stop [this]
+    (timbre/info "Cleaning up job queue.")))
 
 (defn create-job-queue
   []

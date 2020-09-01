@@ -1,12 +1,14 @@
 (ns guidescan-web.config
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
+            [taoensso.timbre :as timbre]
             [com.stuartsierra.component :as component]))
 
 (defrecord Configuration [config-name config]
   component/Lifecycle
   (start [this]
     (when (nil? config)
+      (timbre/info "Loading configuration")
       (if-let [c (edn/read-string (slurp (io/resource config-name)))]
         (assoc this :config c))))
   (stop [this]
