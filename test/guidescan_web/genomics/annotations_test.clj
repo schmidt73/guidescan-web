@@ -21,3 +21,10 @@
             (annotate/get-annotations ga "ce11" "chrII" 310244 310266)]
         (is (= "mps-2" (second (first annotations))))))))
 
+(deftest chrIV-correct-annotations-2
+  (testing "chrIV annoations."
+    (mock/with-component-or-system system (mock/test-system-no-www)
+      (let [ga (:gene-annotations system)
+            annotations
+            (annotate/get-annotations ga "ce11" "chrIV" 911826 911848)]
+        (is (= "fbxc-8" (second (first annotations))))))))

@@ -3,7 +3,8 @@
   annotations for a given genomic interval."
   (:import htsjdk.tribble.index.interval.IntervalTree
            htsjdk.tribble.index.interval.Interval)
-  (:require [com.stuartsierra.component :as component]))
+  (:require [com.stuartsierra.component :as component]
+            [taoensso.timbre :as timbre]))
 
 (defn private-field 
   "A dirty dirty dirty hack that I regret putting into this codebase.
@@ -47,6 +48,7 @@
 (defrecord GeneAnnotations [interval-trees interval-maps config]
   component/Lifecycle
   (start [this]
+    (timbre/info "Constructing interval trees for gene annotations.")
     (when (or (nil? interval-trees) (nil? interval-maps))
       (let [annotations-map (get-in config [:config :annotations-map])
             annotations (map-in annotations-map parse-annotations-file)]

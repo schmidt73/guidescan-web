@@ -16,4 +16,5 @@
 (defn reset-all []
   (when (some? system) (stop))
   (alter-var-root #'system (constantly (guidescan-web.core/core-system)))
-  (refresh-all :after 'user/start))
+  (refresh-all :after 'user/start)
+  nil)

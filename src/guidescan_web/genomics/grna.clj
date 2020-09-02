@@ -10,6 +10,7 @@
 (s/def ::cutting-efficiency float?)
 (s/def ::specificity float?)
 (s/def ::distance int?)
+(s/def ::annotations (s/* string?))
 (s/def ::position int?)
 (s/def ::chromosone string?)
 (s/def ::coord (s/keys :req-un [::position ::chromosone]))
@@ -21,7 +22,7 @@
   (s/keys
    :req-un [::sequence ::start ::end ::direction
             ::specificity ::cutting-efficiency]
-   :opt-un [::off-targets]))
+   :opt-un [::off-targets ::annotations]))
           
 (defn num-off-targets
   "Returns the number of off-targets, optionally only considering

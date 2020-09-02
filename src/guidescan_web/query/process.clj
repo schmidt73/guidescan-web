@@ -4,6 +4,7 @@
   are suitable for rendering."
   (:require [guidescan-web.bam.db :as db]
             [guidescan-web.genomics.grna :as grna]
+            [guidescan-web.genomics.annotations :as annotations]
             [guidescan-web.query.parsing :refer [parse-query]]
             [failjure.core :as f]))
   
@@ -39,11 +40,18 @@
   [top-nvalue grnas]
   (vec (take top-nvalue grnas)))
 
+(defn annotate-grnas
+  [gene-annotations organism grnas [chr _ _]]
+  (let [annotate-grna
+        (fn [{start :start end :end}]
+          (annotations/get-annotations gene-annotations organism chr start end))]
+    (map #(assoc % :annotations (annotate-grna %)) grnas)))
+
 (defn process-query
   "Process the query, returning either a response vector containing the
   processed gRNAs for each [chrX, start, end] input or a failure
   object with an appropriate message."
-  [config req]
+  [config gene-annotations req]
   (let [parsed-query (parse-query (:params req))
         organism (:organism (:params req))
         topn-value (:topn-value (:params req))
@@ -52,10 +60,11 @@
                    (= "true" (:topn (:params req))))]
     (if-let [query (:success parsed-query)] ; else branch = parse error
       (f/attempt-all
-       [grnas (process-parsed-queries config organism query)]
-       (cond->> grnas
+       [vec-of-grnas (process-parsed-queries config organism query)]
+       (cond->> vec-of-grnas
             true (map #(filter-results req %2 %1) query)
             true (map #(sort-results (:ordering req) %2 %1) query)
             topn? (map #(keep-only-top-n (Integer/parseInt topn-value) %))
+            true (map #(annotate-grnas gene-annotations organism %2 %1) query)
             true (map vector query)))
       (f/fail (:failure parsed-query)))))

@@ -3,6 +3,7 @@
    [com.stuartsierra.component :as component]
    [org.httpkit.server :as server]
    [taoensso.timbre :as timbre]
+   [guidescan-web.genomics.annotations :as annotations]
    [guidescan-web.query.jobs :as jobs]
    [guidescan-web.config :as config]
    [guidescan-web.routes :as routes]))
@@ -27,7 +28,8 @@
 (defn core-system []
   (component/system-map
    :web-server (component/using (web-server "localhost" 8000) [:config :job-queue])
-   :job-queue (component/using (jobs/create-job-queue) [:config])
+   :job-queue (component/using (jobs/create-job-queue) [:config :gene-annotations])
+   :gene-annotations (component/using (annotations/gene-annotations) [:config])
    :config (config/create-config "config.edn")))
 
 (defn -main

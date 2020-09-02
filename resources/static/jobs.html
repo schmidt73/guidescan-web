@@ -92,6 +92,7 @@
                     <th data-field="ots" data-sortable="true">off-target-summary</th>
                     <th data-field="cutting-efficiency" data-sortable="true">cutting-efficiency</th>
                     <th data-field="specificity" data-sortable="true">specificity</th>
+                    <th data-field="annotations" data-sortable="false">annotations</th>
                   </tr>
                 </thead>
               </table>
@@ -148,13 +149,22 @@
               num_ots = ots2 + ots3
               ots = '2:' + ots2 + ' | ' + '3:' + ots3;
 
+              annotations = "";
+              if(grna["annotations"].length == 0){
+                  annotations = "None";
+              } else {
+                  annotations = grna["annotations"][0][1];
+              }
+
               row = {'coordinate': coordinate,
                      'sequence': grna['sequence'],
                      'num_ots': num_ots,
                      'ots': ots,
                      'cutting-efficiency': grna['cutting-efficiency'],
-                     'specificity': grna['specificity']};
-              rows.push(row); }
+                     'specificity': grna['specificity'],
+                     'annotations': annotations}
+              rows.push(row);
+          }
           
           return rows;
       }
