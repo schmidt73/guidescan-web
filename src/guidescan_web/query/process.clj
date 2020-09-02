@@ -3,7 +3,7 @@
   applies appropriate filters and sorts them correctly so that they
   are suitable for rendering."
   (:require [guidescan-web.bam.db :as db]
-            [guidescan-web.grna :as grna]
+            [guidescan-web.genomics.grna :as grna]
             [guidescan-web.query.parsing :refer [parse-query]]
             [failjure.core :as f]))
   

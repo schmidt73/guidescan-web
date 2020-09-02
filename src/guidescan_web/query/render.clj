@@ -3,7 +3,7 @@
   successfully processed gRNA query into various formats including
   HTML, CSV, and JSON."
   (:require [cheshire.core :as cheshire]
-            [guidescan-web.grna :as grna]
+            [guidescan-web.genomics.grna :as grna]
             [clojure.data.csv :as csv]))
 
 (def csv-header

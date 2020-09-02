@@ -12,6 +12,8 @@
                           "sacCer3"  "not_implemented"
                           "danRer10" "not_implemented"
                           "ce11"     "cas9_ce11_all_guides.bam"}
+ :annotations-map {"ce11"
+                   "/home/schmidt73/Desktop/guidescan/guidescan-website/gene_body_annotations/ce11/ce11_gene_body_annotation.bed"}
  :genome-structure-map {"ce11" [["chrI" 15072434]
                                 ["chrII" 15279421]
                                 ["chrIII" 13783801]

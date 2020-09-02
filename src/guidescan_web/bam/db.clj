@@ -8,7 +8,7 @@
   (:require
    [failjure.core :as f]
    [guidescan-web.config :as config]
-   [guidescan-web.grna :as grna]
+   [guidescan-web.genomics.grna :as grna]
    [clojure.spec.alpha :as s]
    [clojure.java.io :as io]))
 

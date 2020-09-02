@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
             [guidescan-web.mock :as mock]
-            [guidescan-web.grna :as grna]
+            [guidescan-web.genomics.grna :as grna]
             [guidescan-web.query.process :as process]))
 
 (def test-params-good

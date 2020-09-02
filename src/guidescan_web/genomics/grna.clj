@@ -1,4 +1,4 @@
-(ns guidescan-web.grna
+(ns guidescan-web.genomics.grna
   "Defines the structure of a guideRNAs used througout the
   application. Along with additional utility functions for them."
   (:require [clojure.spec.alpha :as s]))

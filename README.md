@@ -17,12 +17,12 @@ package manager for Clojure.
 - Informative error messages
 - Job queue
 - SSL
+- Annotations
 - Simple deployment to cloud
 
 ## Currently Unsupported Features
 
 - Flanking queries (easy)
-- Annotations (???)
 - Fasta file upload (unknown difficulty)
 
 ## Comments on old code:
