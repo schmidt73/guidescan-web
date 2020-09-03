@@ -52,19 +52,17 @@
               <label class="col-sm-auto col-form-label" for="organism-selector">Organism:</label>
               <div class="col-sm-4">
                 <select class="form-control" name="organism" id="organism-selector">
-                  <option>ce11</option>
-                  <option>hg38</option>
-                  <option>mm10</option>
-                  <option>dm6</option>
-                  <option>SacCerv</option>
-                  <option>danRer10</option>
+                  {% for organism in organisms %}
+                  <option>{{organism}}</option>
+                  {% endfor %}
                 </select>
               </div>
               <label class="col-sm-auto col-form-label" for="enzyme-selector">Enzyme:</label>
               <div class="col-sm-4">
                 <select class="form-control" name="enzyme" id="enzyme-selector">
-                  <option>SpCas9</option>
-                  <option>AsCpf1/LbCpf1</option>
+                  {% for enzyme in enzymes %}
+                  <option>{{enzyme}}</option>
+                  {% endfor %}
                 </select>
               </div>
             </div>
