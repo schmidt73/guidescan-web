@@ -2,14 +2,57 @@
 
 ![Guidescan 2.0 Webpage](https://i.imgur.com/KEps36y.png)
 
-This project is a complete rewrite of the Guidescan website source
-code in Clojure. The goal is to be able to quickly implement new
-features. I will update my progress here as I go.
+Guidescan-web is a complete rewrite of the previous Guidescan website
+for the modern era. With an emphasis on code quality and rigorous
+testing, there should be little getting in your way when making
+changes to the codebase. There should also be little friction when
+deploying the app! Long gone are the days when reproducing the exact
+environment necessary to host the site is a momentous task in of
+itself. We hope that these changes allow Guidescan to continue to
+thrive as a useful tool for biologists going forward, while
+maintaining it's ability to adapt to new requirements.
 
-## Requirements
+# Installation and Deployment
 
-The only requirement for the project is Java >= 1.8.0 and the Leiningen
-package manager for Clojure.
+## Dependencies
+
+Installation of the dependencies rather easy, thanks to the great
+clojure package manager [Leiningen](https://leiningen.org/
+"Leiningen") which is required for this project. Following the
+instructions on the site should make it easy enough to install, but if
+you are on macOS or Debian, running either,
+
+``` shell
+brew install leiningen
+```
+
+or 
+
+``` shell
+apt install leiningen
+```
+
+should do the trick. 
+
+The only dependency that Leiningen relies on is a modern version of
+Java. That is, Java >= 1.8.0, which should also be easy to install
+with your systems package manager.
+
+I list the dependencies here for convenience:
+
+- JDK version 8 or higher
+- [Leiningen](https://leiningen.org/ "Leiningen")
+
+## Testing
+
+To run the test suite and ensure everything is working correctly,
+enter,
+
+``` shell
+lein test
+```
+
+from anywhere within the project.
 
 ## New Features
 
