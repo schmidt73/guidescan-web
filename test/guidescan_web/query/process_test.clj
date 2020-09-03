@@ -14,7 +14,7 @@
 (deftest successful-query-processing
   (testing "Testing that a query is successfully processed."
     (mock/with-component-or-system system (mock/test-system-no-www)
-      (let [[[_ processed-grnas]] (process/process-query (:config system)
+      (let [[[_ processed-grnas]] (process/process-query (:bam-db system)
                                                          (:gene-annotations system)
                                                          test-params-good)]
         (is (and

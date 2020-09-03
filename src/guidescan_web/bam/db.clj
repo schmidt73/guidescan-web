@@ -6,11 +6,13 @@
   The words \"genome\" and \"organism\" are used essentially
   interchangeably throughout the code."
   (:require
-   [failjure.core :as f]
-   [guidescan-web.config :as config]
-   [guidescan-web.genomics.grna :as grna]
    [clojure.spec.alpha :as s]
-   [clojure.java.io :as io]))
+   [clojure.java.io :as io]
+   [failjure.core :as f]
+   [com.stuartsierra.component :as component]
+   [taoensso.timbre :as timbre]
+   [guidescan-web.config :as config]
+   [guidescan-web.genomics.grna :as grna]))
 
 (defn- get-offtarget-delim
   "Gets the delimiter used for parsing off-target info."
@@ -68,7 +70,7 @@
          (map #(convert-offtarget-entry genome %)))))
 
 (defn- parse-query-result
-  [config organism bam-record]
+  [genome-structure organism bam-record]
   (merge {:sequence (.getReadString bam-record)
           :start (.getAlignmentStart bam-record)
           :end (.getAlignmentEnd bam-record)
@@ -76,27 +78,62 @@
           :specificity (Float/parseFloat (.getAttribute bam-record "cs"))
           :cutting-efficiency (Float/parseFloat (.getAttribute bam-record "ds"))}
          (when-let [barray (.getAttribute bam-record "of")]
-           (let [genome (config/get-genome-structure config organism)]
-             {:off-targets (parse-offtarget-info genome barray)}))))
+           {:off-targets (parse-offtarget-info genome-structure barray)})))
 
 (defn- load-bam-reader
   [file]
   (-> (htsjdk.samtools.SamReaderFactory/makeDefault)
     (. open file)))
 
+(defn get-genome-structure
+  "Parses the genome out of a BAM comment field."
+  [bam-comment-field]
+  (-> (re-find #"'genome': (\[[^]]*\])" bam-comment-field)
+      (second)
+      (clojure.string/replace "'" "\"")
+      (clojure.string/replace "(" "[")
+      (clojure.string/replace ")" "]")
+      (read-string)))
+
+(defn get-genome-structure-map
+  "Parses the genome structure out of all the BAM file headers into a
+  map from organism name to genome structures."
+  [config]
+  (into {}
+   (for [organism (:available-organisms (:config config))]
+     (let [grna-db (config/get-grna-db-path config organism)]
+       (with-open [bam-reader (load-bam-reader (io/file grna-db))]
+         (as-> (.getFileHeader bam-reader) e
+           (.getComments e)
+           (nth e 3)
+           (get-genome-structure e)
+           (vector organism e)))))))
+
+(defrecord BamDB [config genome-structure-map]
+  component/Lifecycle
+  (start [this]
+    (when (nil? genome-structure-map)
+      (timbre/info "Parsing genome structures out of databases")
+      (assoc this :genome-structure-map (get-genome-structure-map config))))
+  (stop [this]))
+              
+(defn create-bam-db []
+  (map->BamDB {}))
+
 (defn query-bam-grna-db
   "Queries the BAM gRNA database, and parses the output into
   a sequence of gRNAs that overlap with the query.
 
   Will return a failure object if the chromosone is not in the index."
-  [config organism chromosone start-pos end-pos]
-  (let [grna-db (config/get-grna-db-path config organism)]
+  [bam-db organism chromosone start-pos end-pos]
+  (let [grna-db (config/get-grna-db-path (:config bam-db) organism)
+        genome-structure (get (:genome-structure-map bam-db) organism)]
     (try
       (with-open [bam-reader (load-bam-reader
                               (io/file grna-db))
                   iterator (.query bam-reader chromosone start-pos end-pos
                                    false)]
         (let [bam-records (doall (iterator-seq iterator))]
-          (vec (map #(parse-query-result config organism %) bam-records))))
+          (vec (map #(parse-query-result genome-structure organism %) bam-records))))
       (catch java.lang.IllegalArgumentException _
           (f/fail (str "Invalid chromosome \"" chromosone "\" for organism."))))))

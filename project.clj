@@ -13,9 +13,11 @@
                  [failjure "2.0.0"]
                  [selmer "1.12.28"]
                  [com.taoensso/timbre "4.10.0"]
+                 [org.clojure/tools.cli "1.0.194"]
                  [ring "1.8.1"]]
   :main guidescan-web.core
-  :profiles {:dev {:resource-paths ["test/resources"]
+  :profiles {:uberjar {:aot :all}
+             :dev {:resource-paths ["test/resources"]
                    :source-paths ["src" "dev" "test"]
                    :repl-options {:init-ns user}
                    :dependencies [[org.clojure/tools.namespace "1.0.0"]]}})

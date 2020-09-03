@@ -6,8 +6,9 @@
 (deftest grna-successful-query-test
   (testing "gRNA query test"
     (is
-     (mock/with-component-or-system config (mock/test-config)
-       (let [grnas (db/query-bam-grna-db config "ce11" "chrIV" 911770 911820)
+     (mock/with-component-or-system system (mock/test-system-no-www)
+       (let [bam-db (:bam-db system)
+             grnas (db/query-bam-grna-db bam-db "ce11" "chrIV" 911770 911820)
              grnas-inside (filter #(not (or (< (:start %) 911770)
                                             (> (:end %) 911820)))
                                   grnas)]

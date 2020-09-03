@@ -12,9 +12,9 @@
   "Processes parsed queries, returning a failure object containing the
   first failed query on failure, and the unfiltered and unsorted,
   gRNAs for each [chrX, start, end] triple otherwise."
-  [config organism parsed-queries]
+  [bam-db organism parsed-queries]
   (let [processed-queries
-        (map #(apply db/query-bam-grna-db config organism %) parsed-queries)]
+        (map #(apply db/query-bam-grna-db bam-db organism %) parsed-queries)]
      (if (some f/failed? processed-queries)
        (first (filter f/failed? processed-queries))
        processed-queries)))
@@ -51,7 +51,7 @@
   "Process the query, returning either a response vector containing the
   processed gRNAs for each [chrX, start, end] input or a failure
   object with an appropriate message."
-  [config gene-annotations req]
+  [bam-db gene-annotations req]
   (let [parsed-query (parse-query (:params req))
         organism (:organism (:params req))
         topn-value (:topn-value (:params req))
@@ -60,7 +60,7 @@
                    (= "true" (:topn (:params req))))]
     (if-let [query (:success parsed-query)] ; else branch = parse error
       (f/attempt-all
-       [vec-of-grnas (process-parsed-queries config organism query)]
+       [vec-of-grnas (process-parsed-queries bam-db organism query)]
        (cond->> vec-of-grnas
             true (map #(filter-results req %2 %1) query)
             true (map #(sort-results (:ordering req) %2 %1) query)

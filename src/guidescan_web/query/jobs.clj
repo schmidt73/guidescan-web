@@ -6,7 +6,7 @@
             [taoensso.timbre :as timbre]
             [com.stuartsierra.component :as component]))
 
-(defrecord JobQueue [config gene-annotations jobs]
+(defrecord JobQueue [bam-db gene-annotations jobs]
   component/Lifecycle
   (start [this]
     (when (nil? jobs)
@@ -25,9 +25,9 @@
   (dosync
    (let [jobs (:jobs job-queue)
          job-id (:id-counter @jobs)
-         config (:config job-queue)
+         bam-db (:bam-db job-queue)
          gene-annotations (:gene-annotations job-queue)
-         future-obj (future-call #(process-query config gene-annotations req))]
+         future-obj (future-call #(process-query bam-db gene-annotations req))]
       (ref-set jobs
         (assoc @jobs
                :id-counter (inc job-id)
