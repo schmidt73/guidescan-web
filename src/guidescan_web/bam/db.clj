@@ -74,16 +74,19 @@
   (merge {:sequence (.getReadString bam-record)
           :start (.getAlignmentStart bam-record)
           :end (.getAlignmentEnd bam-record)
-          :direction (if (.getReadNegativeStrandFlag bam-record) :negative :positive)
-          :specificity (Float/parseFloat (.getAttribute bam-record "cs"))
-          :cutting-efficiency (Float/parseFloat (.getAttribute bam-record "ds"))}
+          :direction (if (.getReadNegativeStrandFlag bam-record) :negative :positive)}
+         (when-let [cutting-efficiency (.getAttribute bam-record "ds")]
+           {:cutting-efficiency (Float/parseFloat cutting-efficiency)})
+         (when-let [specificity (.getAttribute bam-record "cs")]
+           {:specificity (Float/parseFloat specificity)})
          (when-let [barray (.getAttribute bam-record "of")]
            {:off-targets (parse-offtarget-info genome-structure barray)})))
 
 (defn- load-bam-reader
   [file]
   (-> (htsjdk.samtools.SamReaderFactory/makeDefault)
-    (. open file)))
+      (.validationStringency htsjdk.samtools.ValidationStringency/SILENT)
+      (.open file)))
 
 (defn get-genome-structure
   "Parses the genome out of a BAM comment field."

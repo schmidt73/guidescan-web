@@ -16,10 +16,10 @@
                     direction)
         num-ots (grna/num-off-targets grna)
         ots (str "2:" (grna/num-off-targets grna 2) " | "
-                 "3:" (grna/num-off-targets grna 3))] 
-        
-    [coords (:sequence grna) num-ots ots
-     (:cutting-efficiency grna) (:specificity grna)]))
+                 "3:" (grna/num-off-targets grna 3))
+        cutting-efficiency (get grna :cutting-efficiency "N/A")
+        specificity (get grna :specificity "N/A")] 
+    [coords (:sequence grna) num-ots ots cutting-efficiency specificity]))
 
 (defn processed-query-to-csv-vector
   [[[chr start end] grnas]]

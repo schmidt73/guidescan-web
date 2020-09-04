@@ -90,8 +90,8 @@
                     <th data-field="sequence" data-sortable="true">sequence</th>
                     <th data-field="num_ots" data-sortable="true">num-off-targets</th>
                     <th data-field="ots" data-sortable="true">off-target-summary</th>
-                    <th data-field="cutting-efficiency" data-sortable="true">cutting-efficiency</th>
-                    <th data-field="specificity" data-sortable="true">specificity</th>
+                    <th id="cutting_ef_col" data-field="cutting-efficiency" data-sortable="true">cutting-efficiency</th>
+                    <th id="specificity_col" data-field="specificity" data-sortable="true">specificity</th>
                     <th data-field="annotations" data-sortable="false">annotations</th>
                   </tr>
                 </thead>
@@ -148,21 +148,24 @@
               coordinate = query[0] + ":" + grna['start'] + '-' + grna['end'] + ":" + direction;
               num_ots = ots2 + ots3
               ots = '2:' + ots2 + ' | ' + '3:' + ots3;
-
-              annotations = "";
-              if(grna["annotations"].length == 0){
-                  annotations = "None";
-              } else {
-                  annotations = grna["annotations"][0][1];
-              }
-
+              
               row = {'coordinate': coordinate,
                      'sequence': grna['sequence'],
                      'num_ots': num_ots,
-                     'ots': ots,
-                     'cutting-efficiency': grna['cutting-efficiency'],
-                     'specificity': grna['specificity'],
-                     'annotations': annotations}
+                     'ots': ots}
+
+              if(grna["annotations"].length != 0){
+                  row["annotations"] = grna["annotations"][0][1];
+              }
+
+              if("cutting-efficiency" in grna){
+                  row["cutting-efficiency"] = grna["cutting-efficiency"];
+              } 
+
+              if("specificity" in grna){
+                  row["specificity"]= grna["specificity"];
+              }
+
               rows.push(row);
           }
           
@@ -174,7 +177,22 @@
               result = data[i]
               query = result[0];
               grnas = result[1];
-              console.log(grnas)
+
+              all_grnas_no_specificity = true;
+              for(var i = 0; i < grnas.length; i++) {
+                  if("specificity" in grnas[i]){
+                      all_grnas_no_specificity = false;
+                      break;
+                  }
+              }
+
+              all_grnas_no_cutting_ef = true;
+              for(var i = 0; i < grnas.length; i++) {
+                  if("cutting-efficiency" in grnas[i]){
+                      all_grnas_no_cutting_ef = false;
+                      break;
+                  }
+              }
 
               header = '<h4 class="font-italic font-weight-light">' +
                        query[0] + ":" + query[1] + "-" + query[2] + "</h4>"
@@ -185,6 +203,14 @@
               template.css('visibility', 'visible');
               template.css('height', '');
               template.appendTo('#results');
+
+              if (all_grnas_no_cutting_ef) {
+                  template.find('#cutting_ef_col').remove();
+              }
+
+              if (all_grnas_no_specificity) {
+                  template.find('#specificity_col').remove();
+              }
 
               template.find('#table').bootstrapTable({
                   data: get_table_rows(query, grnas)
