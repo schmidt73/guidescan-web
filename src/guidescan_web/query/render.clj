@@ -26,7 +26,7 @@
   (into
    [[(:name genomic-region)]
     csv-header]
-   (mapv #(grna-to-csv-vector (first :coords genomic-region) %) grnas)))
+   (mapv #(grna-to-csv-vector (first (:coords genomic-region)) %) grnas)))
 
 (defmulti render-query-result
   (fn [format processed-query] format))
