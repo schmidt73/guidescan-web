@@ -14,7 +14,7 @@
   gRNAs for each [chrX, start, end] triple otherwise."
   [bam-db organism enzyme parsed-queries]
   (let [processed-queries
-        (map #(apply db/query-bam-grna-db bam-db organism enzyme %) parsed-queries)]
+        (map #(apply db/query-bam-grna-db bam-db organism enzyme (:coords %)) parsed-queries)]
      (if (some f/failed? processed-queries)
        (first (filter f/failed? processed-queries))
        processed-queries)))
@@ -22,7 +22,7 @@
 (defn sort-results
   "Sorts the results of a gRNA query according to the ordering
   specified in the user request map."
-  [ordering grnas [chromosone start-pos end-pos]]
+  [ordering grnas _]
   (case ordering
     "specificity" (sort-by :specificity grnas)
     "cutting-efficiency" (sort-by :cutting-efficiency grnas)
@@ -31,21 +31,47 @@
 (defn filter-results
   "Filters the results of a gRNA query according to the parameters
   specified in the user request map."
-  [req grnas [chromosone start-pos end-pos]]
-  (->> grnas
-       (filter #(and (<= start-pos (:start %))
-                     (>= end-pos (:end %))))))
+  [req grnas genomic-region]
+  (let [[chromosone start-pos end-pos] (:coords genomic-region)]
+    (->> grnas
+         (filter #(and (<= start-pos (:start %))
+                       (>= end-pos (:end %)))))))
 
 (defn keep-only-top-n
+  "Returns only the top-n grnas."
   [top-nvalue grnas]
   (vec (take top-nvalue grnas)))
 
 (defn annotate-grnas
-  [gene-annotations organism grnas [chr _ _]]
-  (let [annotate-grna
+  "Annotates the grnas."
+  [gene-annotations organism grnas genomic-region]
+  (let [chr (first (:coords genomic-region))
+        annotate-grna
         (fn [{start :start end :end}]
           (annotations/get-annotations gene-annotations organism chr start end))]
     (map #(assoc % :annotations (annotate-grna %)) grnas)))
+
+(defn split-region-flanking
+  [[chr start end] flanking-value]
+  [{:name (str chr ":" start "-" end ":left-flank")
+    :coords [chr (- start (- flanking-value 1)) start]}
+   {:name (str chr ":" start "-" end ":right-flank")
+    :coords [chr end (+ end (- flanking-value 1))]}])
+
+(defn convert-regions
+  "Converts genomic regions of the form,
+      [chr, start, end]
+  to ones of the form,
+      {:name name
+       :coords [chr, start, end]}
+  converting each region into two when
+  we are in flanking mode."
+  [genomic-regions flanking flanking-value]
+  (let [name-region #(str (nth % 0) ":" (nth % 1) "-" (nth % 2))]
+    (if-not flanking
+      (map #(assoc {} :name (name-region %) :coords %) genomic-regions)
+      (apply concat
+             (map #(split-region-flanking % flanking-value) genomic-regions)))))
 
 (defn process-query
   "Process the query, returning either a response vector containing the
@@ -58,14 +84,20 @@
         topn-value (:topn-value (:params req))
         topn? (and (some? topn-value)
                    (boolean (re-find #"[0-9]+" topn-value))
-                   (= "true" (:topn (:params req))))]
-    (if-let [query (:success parsed-query)] ; else branch = parse error
-      (f/attempt-all
-       [vec-of-grnas (process-parsed-queries bam-db organism enzyme query)]
-       (cond->> vec-of-grnas
-            true (map #(filter-results req %2 %1) query)
-            true (map #(sort-results (:ordering req) %2 %1) query)
-            topn? (map #(keep-only-top-n (Integer/parseInt topn-value) %))
-            true (map #(annotate-grnas gene-annotations organism %2 %1) query)
-            true (map vector query)))
+                   (= "true" (:topn (:params req))))
+        flanking-value (:flanking-value (:params req))
+        flanking (and (some? flanking-value)
+                      (boolean (re-find #"[0-9]+" flanking-value))
+                      (= "true" (:flanking (:params req))))
+        flanking-value-int (when flanking (Integer/parseInt flanking-value))]
+    (if-let [genomic-regions (:success parsed-query)] ; else branch = parse error
+      (let [converted-regions (convert-regions genomic-regions flanking flanking-value-int)]
+        (f/attempt-all
+         [vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)]
+         (cond->> vec-of-grnas
+              true (map #(filter-results req %2 %1) converted-regions)
+              true (map #(sort-results (:ordering req) %2 %1) converted-regions)
+              topn? (map #(keep-only-top-n (Integer/parseInt topn-value) %))
+              true (map #(annotate-grnas gene-annotations organism %2 %1) converted-regions)
+              true (map vector converted-regions))))
       (f/fail (:failure parsed-query)))))

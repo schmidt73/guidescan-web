@@ -135,7 +135,7 @@
           return counts;
       }
 
-      function get_table_rows(query, grnas) {
+      function get_table_rows(genomic_region, grnas) {
           rows = []
           
           for(var i = 0; i < grnas.length; i++) {
@@ -145,11 +145,10 @@
               ots3 = (3 in ots) ? ots[3] : 0;
               
               direction = grna["direction"] == "positive" ? "+" : "-";
-              coordinate = query[0] + ":" + grna['start'] + '-' + grna['end'] + ":" + direction;
               num_ots = ots2 + ots3
               ots = '2:' + ots2 + ' | ' + '3:' + ots3;
               
-              row = {'coordinate': coordinate,
+              row = {'coordinate': genomic_region["name"],
                      'sequence': grna['sequence'],
                      'num_ots': num_ots,
                      'ots': ots}
@@ -175,27 +174,27 @@
       function build_tables(data){
           for (i = 0; i < data.length; i++) {
               result = data[i]
-              query = result[0];
+              genomic_region = result[0];
               grnas = result[1];
 
               all_grnas_no_specificity = true;
-              for(var i = 0; i < grnas.length; i++) {
-                  if("specificity" in grnas[i]){
+              for(var j = 0; i < grnas.length; j++) {
+                  if("specificity" in grnas[j]){
                       all_grnas_no_specificity = false;
                       break;
                   }
               }
 
               all_grnas_no_cutting_ef = true;
-              for(var i = 0; i < grnas.length; i++) {
-                  if("cutting-efficiency" in grnas[i]){
+              for(var j = 0; i < grnas.length; j++) {
+                  if("cutting-efficiency" in grnas[j]){
                       all_grnas_no_cutting_ef = false;
                       break;
                   }
               }
 
               header = '<h4 class="font-italic font-weight-light">' +
-                       query[0] + ":" + query[1] + "-" + query[2] + "</h4>"
+                       genomic_region["name"] + "</h4>"
               $(header).appendTo("#results");
 
               template = $("#table-template").clone();
@@ -213,7 +212,7 @@
               }
 
               template.find('#table').bootstrapTable({
-                  data: get_table_rows(query, grnas)
+                  data: get_table_rows(genomic_region, grnas)
               });
           }
       };

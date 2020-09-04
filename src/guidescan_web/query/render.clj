@@ -22,11 +22,11 @@
     [coords (:sequence grna) num-ots ots cutting-efficiency specificity]))
 
 (defn processed-query-to-csv-vector
-  [[[chr start end] grnas]]
+  [[genomic-region grnas]]
   (into
-   [[(str chr ":" start "-" end)]
+   [[(:name genomic-region)]
     csv-header]
-   (mapv #(grna-to-csv-vector chr %) grnas)))
+   (mapv #(grna-to-csv-vector (first :coords genomic-region) %) grnas)))
 
 (defmulti render-query-result
   (fn [format processed-query] format))

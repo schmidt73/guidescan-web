@@ -116,6 +116,7 @@
 (defrecord BamDB [config genome-structure-map]
   component/Lifecycle
   (start [this]
+    (timbre/info "Loading genome structure map.")
     (when (nil? genome-structure-map)
       (assoc this :genome-structure-map (get-genome-structure-map config))))
   (stop [this]))

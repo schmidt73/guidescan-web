@@ -78,9 +78,10 @@
     :text))
 
 (defmulti parse-query
-  "Parses the parameters of a query into a 0 based half-open coordinate
-  format. The multimethod dispatches on the type of query, and it
-  handles raw text input, BED files, GTF files, and FASTA files.
+  "Parses the parameters of a query into a list of genomic regions in 0
+  based half-open coordinate format. The multimethod dispatches on the
+  type of query, and it handles raw text input, BED files, GTF files,
+  and FASTA files.
 
   The method returns a map indicating either a successful parse tree
   or failure to parse along with an error message.
