@@ -32,10 +32,14 @@
   "Filters the results of a gRNA query according to the parameters
   specified in the user request map."
   [req grnas genomic-region]
-  (let [[chromosone start-pos end-pos] (:coords genomic-region)]
-    (->> grnas
-         (filter #(and (<= start-pos (:start %))
-                       (>= end-pos (:end %)))))))
+  (let [[chromosone start-pos end-pos] (:coords genomic-region)
+        filter-annotated (:filter-annotated (:params req))
+        filter-annotated? (and (some? filter-annotated)
+                               (= "true" filter-annotated))]      
+    (cond->> grnas
+         true (filter #(and (<= start-pos (:start %))
+                           (>= end-pos (:end %))))
+         filter-annotated? (filter #(not-empty (:annotations %))))))
 
 (defn keep-only-top-n
   "Returns only the top-n grnas."
@@ -82,10 +86,10 @@
         enzyme (:enzyme (:params req))
         organism (:organism (:params req))
         topn-value (:topn-value (:params req))
+        flanking-value (:flanking-value (:params req))
         topn? (and (some? topn-value)
                    (boolean (re-find #"[0-9]+" topn-value))
                    (= "true" (:topn (:params req))))
-        flanking-value (:flanking-value (:params req))
         flanking (and (some? flanking-value)
                       (boolean (re-find #"[0-9]+" flanking-value))
                       (= "true" (:flanking (:params req))))
@@ -95,9 +99,9 @@
         (f/attempt-all
          [vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)]
          (cond->> vec-of-grnas
+              true (map #(annotate-grnas gene-annotations organism %2 %1) converted-regions)
               true (map #(filter-results req %2 %1) converted-regions)
               true (map #(sort-results (:ordering req) %2 %1) converted-regions)
               topn? (map #(keep-only-top-n (Integer/parseInt topn-value) %))
-              true (map #(annotate-grnas gene-annotations organism %2 %1) converted-regions)
               true (map vector converted-regions))))
       (f/fail (:failure parsed-query)))))

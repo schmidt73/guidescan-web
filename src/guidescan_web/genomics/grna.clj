@@ -20,9 +20,9 @@
 
 (s/def ::grna
   (s/keys
-   :req-un [::sequence ::start ::end ::direction]
-   :opt-un [::off-targets ::annotations
-            ::specificity ::cutting-efficiency]))
+   :req-un [::sequence ::start ::end ::direction
+            ::annotations]
+   :opt-un [::off-targets ::specificity ::cutting-efficiency]))
           
 (defn num-off-targets
   "Returns the number of off-targets, optionally only considering
