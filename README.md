@@ -57,6 +57,10 @@ First, bundle the code up into an uberjar file by running (read
 
 ``` shell
 $ lein uberjar
+Retrieving org/clojure/tools.cli/1.0.194/tools.cli-1.0.194.pom from central
+Retrieving org/clojure/pom.contrib/1.0.0/pom.contrib-1.0.0.pom from central
+Retrieving org/clojure/tools.cli/1.0.194/tools.cli-1.0.194.jar from central
+...
 Compiling guidescan-web.bam.db
 Compiling guidescan-web.config
 Compiling guidescan-web.core
@@ -67,8 +71,8 @@ Compiling guidescan-web.query.parsing
 Compiling guidescan-web.query.process
 Compiling guidescan-web.query.render
 Compiling guidescan-web.routes
-Created /home/schmidt73/Desktop/guidescan-web/target/guidescan-web-2.0.jar
-Created /home/schmidt73/Desktop/guidescan-web/target/guidescan-web-2.0-standalone.jar
+Created /home/ec2-user/guidescan-web/target/guidescan-web-2.0.jar
+Created /home/ec2-user/guidescan-web/target/guidescan-web-2.0-standalone.jar
 ```
 
 This will install all the dependencies and compile the code, generating
