@@ -95,6 +95,19 @@ though I recommend increasing the available memory to at least 8GB with the foll
 
 ``` shell
 $ java -Xmx8G -jar guidescan-web-2.0-standalone.jar
+Guidescan 2.0 Webserver
+
+Usage: java -jar guidescan-web.jar [options] -c CONFIG 
+
+Options:
+  -p, --port PORT       8000       Port number
+  -H, --hostname HOST   localhost  Hostname
+  -c, --config CONFIG              EDN file for program configuration.
+  -v                               Verbosity level
+      --example-config             Prints out an example configuration.
+  -h, --help                       Displays this help message.
+
+Please refer to https://github.com/schmidt73/guidescan-web page for more information.
 ```
 
 ## Configuration
@@ -103,8 +116,12 @@ $ java -Xmx8G -jar guidescan-web-2.0-standalone.jar
 
 Configuration is an essential part of the deployment process as the
 program will need access to databases and information specific to each
-organism:cas-enzyme combination. To configure the web server simply
-supply a config.edn file to the program.
+organism:cas-enzyme combination. Configuration is done at *runtime* to
+allow for maximum portability. Configuration is not tucked away during
+compilation.
+
+To configure the web server simply supply a config.edn file to the
+program.
 
 An example config can be found in the codebase, or by running,
 
@@ -118,6 +135,39 @@ or
 $ lein run --example-config
 ```
 
+The config file should be straightforward to parse even without
+an in-depth understanding of the EDN format.
+
+The config first defines the available organisms and cas-enzymes that
+the webserver has access to. For example,
+
+``` clojure
+{:available-organism ["ce11" "hg38" "mm10"]
+ :available-cas-enzymes ["cas9" "ascpf1"]}
+```
+
+defines 6 = 3*2 total organism:enzyme pairs. That is, 6 databases that
+the web server must have access to.
+
+To link the guideRNA databases in correctly, there is an entry that
+maps these organism:enzyme pairs to the database location. It looks
+like this:
+
+``` clojure
+{:grna-database-path-prefix "/home/schmidt73/Desktop/guidescan/guidescan-website/database"
+ :grna-database-path-map {{:organism "ce11" :enzyme "cas9"} "cas9_ce11_all_guides.bam"
+                          ...
+                          {:organism "hg38" :enzyme "ascpf1"} "ascpf1_hg38_all_guides.bam"}}
+```
+
+where the `:grna-database-path-prefix` is added for convenience and
+can be removed if not necessary.
+
+Finally, there is an `:annotations-map` that takes organisms to their
+gene body annotations. This is configured on a per organism basis.
+
+All that aside, the easiest way is to take a look at the example
+config and tweak it to your needs.
 
 ## Testing
 
@@ -125,41 +175,10 @@ To run the test suite and ensure everything is working correctly,
 enter,
 
 ``` shell
-lein test
+$ lein test
+(trunacted ...)
+Ran 45 tests containing 80 assertions.
+0 failures, 0 errors.
 ```
 
 from anywhere within the project.
-
-## New Features
-
-- BED and GTF/GFF file upload support
-- Informative error messages
-- Job queue
-- SSL
-- Annotations
-- Simple deployment to cloud
-
-## Currently Unsupported Features
-
-- Flanking queries (easy)
-- Fasta file upload (unknown difficulty)
-
-## Comments on old code:
-
-One of the main issues I have with the old codebase is that it does a
-lot of input verification. It seems to me that everything would be
-much simpler if instead of verifying input, they would simply attempt
-to process it and let it fail.
-
-One thing I need to do is document the 1 or 0 based invariants used
-throughout the code and explicitly refer to conversions when they are
-performed.
-
-### Bug #1:
-
-Number of off-targets reported is incorrect. For example,
-the guideRNA:
-
-chrV:911752-911774:-	TGAAAAATTTCGTAAAAAAT NGG	
-
-reports 71 off-targets, when in reality there are only 66.
