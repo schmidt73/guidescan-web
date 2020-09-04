@@ -35,7 +35,7 @@
   (into {} (map (fn [[chr start end annot]] [[start end] [chr annot]])
                 annotations)))
 
-(defn- -get-annotations
+(defn- get-annotations-helper
   [it-tree it-map chr start end]
   (->> (.findOverlapping it-tree (new Interval start end))
     (map #(vector (private-field % "start") (private-field % "end")))
@@ -65,5 +65,5 @@
   [gene-annotations organism chr start end]
   (let [it-map (get (:interval-maps gene-annotations) organism)
         it-tree (get (:interval-trees gene-annotations) organism)]
-    (-get-annotations it-tree it-map chr start end)))
+    (get-annotations-helper it-tree it-map chr start end)))
 

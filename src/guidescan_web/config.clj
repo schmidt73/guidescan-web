@@ -4,18 +4,18 @@
             [taoensso.timbre :as timbre]
             [com.stuartsierra.component :as component]))
 
-(defrecord Configuration [config-name config]
+(defrecord Configuration [config-file config]
   component/Lifecycle
   (start [this]
     (when (nil? config)
       (timbre/info "Loading configuration")
-      (if-let [c (edn/read-string (slurp (io/resource config-name)))]
+      (if-let [c (edn/read-string (slurp config-file))]
         (assoc this :config c))))
   (stop [this]
     (assoc this :config nil)))
 
-(defn create-config [config-name]
-  (map->Configuration {:config-name config-name}))
+(defn create-config [config-file]
+  (map->Configuration {:config-file config-file}))
 
 (defn get-grna-db-path [config organism enzyme]
   (.getPath

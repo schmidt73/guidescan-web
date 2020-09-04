@@ -1,5 +1,6 @@
 (ns guidescan-web.mock
   (:require [com.stuartsierra.component :as component]
+            [clojure.java.io :as io]
             [guidescan-web.config :as config]
             [guidescan-web.genomics.annotations :as annotations]
             [guidescan-web.bam.db :as db]
@@ -13,7 +14,7 @@
          (component/stop ~name)))))
 
 (defn test-config []
-  (config/create-config "test_config.edn"))
+  (config/create-config (io/resource "test_config.edn")))
 
 (defn test-system-no-www []
   (component/system-map
