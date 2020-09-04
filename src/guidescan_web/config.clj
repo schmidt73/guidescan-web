@@ -17,13 +17,10 @@
 (defn create-config [config-name]
   (map->Configuration {:config-name config-name}))
 
-(defn get-grna-db-path [config organism]
+(defn get-grna-db-path [config organism enzyme]
   (.getPath
     (io/file
      (:grna-database-path-prefix (:config config))
      (get (:grna-database-path-map (:config config))
-          organism))))
-
-(defn get-genome-structure
-  [config organism]
-  (get-in (:config config) [:genome-structure-map organism]))
+          {:organism organism
+           :enzyme enzyme}))))

@@ -1,5 +1,5 @@
 {:available-organisms ["ce11"]
  :available-cas-enzymes ["cas9"]
  :grna-database-path-prefix "/home/schmidt73/Desktop/guidescan/guidescan-website/database"
- :grna-database-path-map {"ce11"     "cas9_ce11_all_guides.bam"}
+ :grna-database-path-map {{:organism "ce11" :enzyme "cas9"} "cas9_ce11_all_guides.bam"}
  :annotations-map {"ce11" "/home/schmidt73/Desktop/guidescan/guidescan-website/gene_body_annotations/ce11/ce11_gene_body_annotation.bed"}}

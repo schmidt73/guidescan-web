@@ -1,4 +1,6 @@
 {:available-organisms ["ce11"]
+ :available-cas-enzymes ["cas9"]
  :grna-database-path-prefix "test/resources/database/"
- :grna-database-path-map {"ce11" "cas9_ce11_chrIV_small.bam"}
+ :grna-database-path-map {{:organism "ce11"
+                           :enzyme "cas9"} "cas9_ce11_chrIV_small.bam"}
  :annotations-map {"ce11" "test/resources/ce11_annotations.bed"}}

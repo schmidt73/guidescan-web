@@ -100,20 +100,20 @@
   map from organism name to genome structures."
   [config]
   (into {}
-   (for [organism (:available-organisms (:config config))]
-     (let [grna-db (config/get-grna-db-path config organism)]
+   (for [organism (:available-organisms (:config config))
+         enzyme (:available-cas-enzymes (:config config))]
+     (let [grna-db (config/get-grna-db-path config organism enzyme)]
        (with-open [bam-reader (load-bam-reader (io/file grna-db))]
          (as-> (.getFileHeader bam-reader) e
            (.getComments e)
            (nth e 3)
            (get-genome-structure e)
-           (vector organism e)))))))
+           (vector {:organism organism :enzyme enzyme} e)))))))
 
 (defrecord BamDB [config genome-structure-map]
   component/Lifecycle
   (start [this]
     (when (nil? genome-structure-map)
-      (timbre/info "Parsing genome structures out of databases")
       (assoc this :genome-structure-map (get-genome-structure-map config))))
   (stop [this]))
               
@@ -125,9 +125,10 @@
   a sequence of gRNAs that overlap with the query.
 
   Will return a failure object if the chromosone is not in the index."
-  [bam-db organism chromosone start-pos end-pos]
-  (let [grna-db (config/get-grna-db-path (:config bam-db) organism)
-        genome-structure (get (:genome-structure-map bam-db) organism)]
+  [bam-db organism enzyme chromosone start-pos end-pos]
+  (let [grna-db (config/get-grna-db-path (:config bam-db) organism enzyme)
+        genome-structure (get (:genome-structure-map bam-db) {:organism organism :enzyme enzyme})]
+    (timbre/info "query-bam-db" bam-db)
     (try
       (with-open [bam-reader (load-bam-reader
                               (io/file grna-db))
