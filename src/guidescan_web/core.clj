@@ -76,11 +76,7 @@
    ["-A" "--job-age D:H:M:S" (str "The amount of time job results will be "
                                   "stored in queue prior to being deleted.")
     :default {:days 1}
-    :parse-fn parse-age
-    :validate [#(some? (parse-age %))
-               (str
-                "Age in format days:hours:minutes:seconds.\nFor example,"
-                "1:12:30:0 represents 1 day, 12 hours and 30 minutes")]]
+    :parse-fn parse-age]
    ["-c" "--config CONFIG" "EDN file for program configuration."
     :validate [#(try
                   (edn/read-string (slurp %))

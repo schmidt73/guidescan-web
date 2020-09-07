@@ -104,12 +104,13 @@ Guidescan 2.0 Webserver
 Usage: java -jar guidescan-web.jar [options] -c CONFIG 
 
 Options:
-  -p, --port PORT       8000       Port number
-  -H, --hostname HOST   localhost  Hostname
-  -c, --config CONFIG              EDN file for program configuration.
-  -v                               Verbosity level
-      --example-config             Prints out an example configuration.
-  -h, --help                       Displays this help message.
+  -p, --port PORT        8000       Port number
+  -H, --hostname HOST    localhost  Hostname
+  -A, --job-age D:H:M:S  {:days 1}  The amount of time job results will be stored in queue prior to being deleted.
+  -c, --config CONFIG               EDN file for program configuration.
+  -v                                Verbosity level
+      --example-config              Prints out an example configuration.
+  -h, --help                        Displays this help message.
 
 Please refer to https://github.com/schmidt73/guidescan-web page for more information.
 ```
