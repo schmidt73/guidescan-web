@@ -18,3 +18,8 @@
   (alter-var-root #'system (constantly (init)))
   (refresh-all :after 'reload/start)
   nil)
+
+(defn reset-all-no-stop []
+  (alter-var-root #'system (constantly (init)))
+  (refresh-all :after 'reload/start)
+  nil)

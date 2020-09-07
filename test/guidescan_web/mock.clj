@@ -22,4 +22,4 @@
    :config (test-config)
    :gene-annotations (component/using (annotations/gene-annotations)
                                       [:config])
-   :job-queue (component/using (jobs/create-job-queue) [:bam-db :gene-annotations])))
+   :job-queue (component/using (jobs/create-job-queue {:days 1}) [:bam-db :gene-annotations])))

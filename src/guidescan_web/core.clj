@@ -30,18 +30,18 @@
 (defn web-server [host port]
   (map->WebServer {:host host :port port}))
 
-(defn core-system [host port config-file]
+(defn core-system [host port job-age config-file]
   (component/system-map
    :bam-db (component/using (db/create-bam-db) [:config])
    :web-server (component/using (web-server host port) [:config :job-queue])
-   :job-queue (component/using (jobs/create-job-queue) [:bam-db :gene-annotations])
+   :job-queue (component/using (jobs/create-job-queue job-age) [:bam-db :gene-annotations])
    :gene-annotations (component/using (annotations/gene-annotations) [:config])
    :config (config/create-config config-file)))
 
 (defn start-system
   "Starts the core system, blocking until it returns."
-  [host port config-file]
-  (let [system (component/start (core-system host port config-file))
+  [host port job-age config-file]
+  (let [system (component/start (core-system host port job-age config-file))
           lock (promise)
           stop (fn []
                  (component/stop system)
@@ -51,6 +51,14 @@
       (System/exit 0)))
 
 ;;;; CLI Stuff
+
+(defn- parse-age [str]
+  (if-let [match (re-find #"(\d+):(\d+):(\d+):(\d+)" str)]
+    (let [[_ days hours minutes seconds] match]
+      {:days (Integer/parseInt days)
+       :hours (Integer/parseInt hours)
+       :minutes (Integer/parseInt minutes)
+       :seconds (Integer/parseInt seconds)})))
 
 (def cli-options
   [["-p" "--port PORT" "Port number"
@@ -65,6 +73,14 @@
                   true
                   (catch java.net.UnknownHostException _ false))
                "Invalid hostname."]]
+   ["-A" "--job-age D:H:M:S" (str "The amount of time job results will be "
+                                  "stored in queue prior to being deleted.")
+    :default {:days 1}
+    :parse-fn parse-age
+    :validate [#(some? (parse-age %))
+               (str
+                "Age in format days:hours:minutes:seconds.\nFor example,"
+                "1:12:30:0 represents 1 day, 12 hours and 30 minutes")]]
    ["-c" "--config CONFIG" "EDN file for program configuration."
     :validate [#(try
                   (edn/read-string (slurp %))
@@ -110,7 +126,7 @@
       errors
       {:exit-message (error-msg errors)}
 
-      (every? #(contains? options %) [:port :hostname :config])
+      (every? #(contains? options %) [:port :hostname :config :job-age])
       {:options options}
 
       :else
@@ -124,4 +140,5 @@
   (let [{:keys [options exit-message ok?]} (validate-args args)]
     (if exit-message
       (exit (if ok? 0 1) exit-message)
-      (start-system (:hostname options) (:port options) (:config options)))))
+      (start-system (:hostname options) (:port options)
+                    (:job-age options) (:config options)))))

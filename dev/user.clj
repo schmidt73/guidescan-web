@@ -5,6 +5,8 @@
 
 (alter-var-root
  #'reload/init
- (constantly #(guidescan-web.core/core-system "localhost" 8000 (io/resource "config.edn"))))
+ (constantly #(guidescan-web.core/core-system "localhost" 8000
+                                              {:days 1} (io/resource "config.edn"))))
+
 
 
