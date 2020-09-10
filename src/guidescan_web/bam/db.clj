@@ -100,7 +100,9 @@
 
 (defn get-genome-structure-map
   "Parses the genome structure out of all the BAM file headers into a
-  map from organism name to genome structures."
+  map from organism-enzyme pairs to genome structures. The
+  genome-structure is necessary to resolve the absolute coordinates
+  stored in the database to relative coordinates."
   [config]
   (into {}
    (for [organism (:available-organisms (:config config))

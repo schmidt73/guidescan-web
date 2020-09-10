@@ -28,12 +28,31 @@
     csv-header]
    (mapv #(grna-to-csv-vector (first (:coords genomic-region)) %) grnas)))
 
+(defn grna-to-bed-line
+  [chr grna]
+  (let [direction (if (= (:direction grna) :positive) "+" "-")
+        name (str chr ":" (:start grna) "-" (:end grna) ":" direction)]
+    (str chr " " (:start grna) " " (:end grna) " " name " 0 " direction)))
+
+(defn processed-query-to-bed-entry
+  [[genomic-region grnas]]
+  (->> grnas
+   (map #(grna-to-bed-line (first (:coords genomic-region)) %))
+   (clojure.string/join "\n")))
+
 (defmulti render-query-result
   (fn [format processed-query] format))
   
 (defmethod render-query-result :json
   [_ processed-query]
   (cheshire/encode processed-query))
+
+(defmethod render-query-result :bed
+  [_ processed-query]
+  (->> processed-query
+   (map processed-query-to-bed-entry)
+   (clojure.string/join "\n")
+   (str "track name=\"guideRNAs\"\n")))
 
 (defmethod render-query-result :csv
   [_ processed-query]
@@ -48,4 +67,5 @@
   [format]
   (case format
     :json "application/json"
+    :bed "text/bed"
     :csv "text/csv"))

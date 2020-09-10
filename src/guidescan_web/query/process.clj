@@ -67,15 +67,17 @@
       [chr, start, end]
   to ones of the form,
       {:name name
+       :organism organism
        :coords [chr, start, end]}
   converting each region into two when
   we are in flanking mode."
-  [genomic-regions flanking flanking-value]
+  [genomic-regions organism flanking? flanking-value]
   (let [name-region #(str (nth % 0) ":" (nth % 1) "-" (nth % 2))]
-    (if-not flanking
-      (map #(assoc {} :name (name-region %) :coords %) genomic-regions)
-      (apply concat
-             (map #(split-region-flanking % flanking-value) genomic-regions)))))
+    (cond->> genomic-regions
+      (not flanking?) (map #(assoc {} :name (name-region %) :coords %))
+      flanking?       (map #(split-region-flanking % flanking-value))
+      flanking?       (apply concat)
+      true            (map #(assoc % :organism organism)))))
 
 (defn process-query
   "Process the query, returning either a response vector containing the
@@ -95,13 +97,14 @@
                       (= "true" (:flanking (:params req))))
         flanking-value-int (when flanking (Integer/parseInt flanking-value))]
     (if-let [genomic-regions (:success parsed-query)] ; else branch = parse error
-      (let [converted-regions (convert-regions genomic-regions flanking flanking-value-int)]
+      (let [converted-regions (convert-regions genomic-regions organism
+                                               flanking flanking-value-int)]
         (f/attempt-all
          [vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)]
          (cond->> vec-of-grnas
-              true (map #(annotate-grnas gene-annotations organism %2 %1) converted-regions)
-              true (map #(filter-results req %2 %1) converted-regions)
-              true (map #(sort-results (:ordering req) %2 %1) converted-regions)
-              topn? (map #(keep-only-top-n (Integer/parseInt topn-value) %))
-              true (map vector converted-regions))))
+           true (map #(annotate-grnas gene-annotations organism %2 %1) converted-regions)
+           true (map #(filter-results req %2 %1) converted-regions)
+           true (map #(sort-results (:ordering req) %2 %1) converted-regions)
+           topn? (map #(keep-only-top-n (Integer/parseInt topn-value) %))
+           true (map vector converted-regions))))
       (f/fail (:failure parsed-query)))))

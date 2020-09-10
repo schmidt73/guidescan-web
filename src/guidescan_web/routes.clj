@@ -48,11 +48,12 @@
    (ANY "/query" req (query-handler job-queue req))
    (GET "/job/show/:id{[0-9]+}" [id]
         (job-show-handler job-queue (Integer/parseInt id)))
-   (GET "/job/get/:format{csv|json}/:id{[0-9]+}" [format id]
+   (GET "/job/get/:format{csv|json|bed}/:id{[0-9]+}" [format id]
         (job-get-handler job-queue (keyword format) (Integer/parseInt id)))
-   (GET "/home" [] (selmer/render-file "static/index.html"
-                                       {:organisms (:available-organisms (:config config))
-                                        :enzymes (:available-cas-enzymes (:config config))}))))
+   (GET "/home" [] (selmer/render-file
+                    "static/index.html"
+                    {:organisms (:available-organisms (:config config))
+                     :enzymes (:available-cas-enzymes (:config config))}))))
 
 (def www-defaults
   (-> site-defaults
