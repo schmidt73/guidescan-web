@@ -15,25 +15,32 @@
    [guidescan-web.query.jobs :as jobs]))
 
 (defn query-handler
-  "Core of the Guidescan website. Exposes a REST api that takes a query
-  and returns a job queue submission as output."
+  "Core of the Guidescan website. Exposes a REST handler that takes a
+  query and returns a JSON reponse with the job id and status message
+  as output."
   [job-queue req]
   (let [id (jobs/submit-query job-queue req)]
     (timbre/info "Submited job for query from " (:remote-addr req))
-    (selmer/render-file "static/query.html" {:job-id id})))
+    (cheshire/encode {:status :success
+                      :data {:job-id id}})))
 
-(defn job-show-handler
-  "Displays the results of a job."
+(defn job-status-handler
+  "Exposes a REST handler that returns the job's results in various
+  formats when it is completed."
   [job-queue job-id]
-  (let [status (jobs/get-query-status job-queue job-id)]
-    (selmer/render-file
-      "static/jobs.html"
-      (assoc
-       {:status status :job-id job-id}
-       :error-message
-       (when (= status :failed) (f/message (jobs/get-query job-queue job-id)))))))
+  (let [status (or (jobs/get-query-status job-queue job-id) :not-submitted)
+        failure-message (when (= status :failed) (f/message (jobs/get-query job-queue job-id)))
+        json-obj {:status :success
+                  :data {:job-status status :failure failure-message}}]
+    (content-type 
+      (response (cheshire/encode json-obj))
+      (render/get-content-type :json))))
 
-(defn job-get-handler
+(assoc {} 5 nil)
+
+(defn job-result-handler
+  "Exposes a REST handler that returns the job's results in various
+  formats when it is completed."
   [job-queue format job-id]
   (if (= :completed (jobs/get-query-status job-queue job-id))
     (let [result (jobs/get-query job-queue job-id)]
@@ -46,14 +53,10 @@
   [config job-queue]
   (routes
    (ANY "/query" req (query-handler job-queue req))
-   (GET "/job/show/:id{[0-9]+}" [id]
-        (job-show-handler job-queue (Integer/parseInt id)))
-   (GET "/job/get/:format{csv|json|bed}/:id{[0-9]+}" [format id]
-        (job-get-handler job-queue (keyword format) (Integer/parseInt id)))
-   (GET "/home" [] (selmer/render-file
-                    "static/index.html"
-                    {:organisms (:available-organisms (:config config))
-                     :enzymes (:available-cas-enzymes (:config config))}))))
+   (GET "/job/status/:id{[0-9]+}" [id]
+        (job-status-handler job-queue (Integer/parseInt id)))
+   (GET "/job/result/:format{csv|json|bed}/:id{[0-9]+}" [format id]
+        (job-result-handler job-queue (keyword format) (Integer/parseInt id)))))
 
 (def www-defaults
   (-> site-defaults

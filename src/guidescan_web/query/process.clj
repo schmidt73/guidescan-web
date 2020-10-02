@@ -79,32 +79,46 @@
       flanking?       (apply concat)
       true            (map #(assoc % :organism organism)))))
 
+(defn valid-req?
+  [req]
+  (and
+   (:params req)
+   (or (:query-text (:params req))
+       (:query-file-upload (:params req)))
+   (:enzyme (:params req))
+   (:organism (:params req))
+   true))
+
 (defn process-query
   "Process the query, returning either a response vector containing the
   processed gRNAs for each [chrX, start, end] input or a failure
   object with an appropriate message."
   [bam-db gene-annotations req]
-  (let [parsed-query (parse-query (:params req))
-        enzyme (:enzyme (:params req))
-        organism (:organism (:params req))
-        topn-value (:topn-value (:params req))
-        flanking-value (:flanking-value (:params req))
-        topn? (and (some? topn-value)
-                   (boolean (re-find #"[0-9]+" topn-value))
-                   (= "true" (:topn (:params req))))
-        flanking (and (some? flanking-value)
-                      (boolean (re-find #"[0-9]+" flanking-value))
-                      (= "true" (:flanking (:params req))))
-        flanking-value-int (when flanking (Integer/parseInt flanking-value))]
-    (if-let [genomic-regions (:success parsed-query)] ; else branch = parse error
-      (let [converted-regions (convert-regions genomic-regions organism
-                                               flanking flanking-value-int)]
-        (f/attempt-all
-         [vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)]
-         (cond->> vec-of-grnas
-           true (map #(annotate-grnas gene-annotations organism %2 %1) converted-regions)
-           true (map #(filter-results req %2 %1) converted-regions)
-           true (map #(sort-results (:ordering req) %2 %1) converted-regions)
-           topn? (map #(keep-only-top-n (Integer/parseInt topn-value) %))
-           true (map vector converted-regions))))
-      (f/fail (:failure parsed-query)))))
+  (if (valid-req? req)
+    (let [parsed-query (parse-query (:params req))
+          enzyme (:enzyme (:params req))
+          organism (:organism (:params req))
+          topn-value (:topn-value (:params req))
+          flanking-value (:flanking-value (:params req))
+          topn? (and (some? topn-value)
+                     (boolean (re-find #"[0-9]+" topn-value))
+                     (= "true" (:topn (:params req))))
+          flanking (and (some? flanking-value)
+                        (boolean (re-find #"[0-9]+" flanking-value))
+                        (= "true" (:flanking (:params req))))
+          flanking-value-int (when flanking (Integer/parseInt flanking-value))]
+      (if-let [genomic-regions (:success parsed-query)] ; else branch = parse error
+        (let [converted-regions (convert-regions genomic-regions organism
+                                                 flanking flanking-value-int)]
+          (f/attempt-all
+           [vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)]
+           (cond->> vec-of-grnas
+             true (map #(annotate-grnas gene-annotations organism %2 %1) converted-regions)
+             true (map #(filter-results req %2 %1) converted-regions)
+             true (map #(sort-results (:ordering req) %2 %1) converted-regions)
+             topn? (map #(keep-only-top-n (Integer/parseInt topn-value) %))
+             true (map vector converted-regions))))
+        (f/fail (:failure parsed-query))))
+    (f/fail "Invalid POST/GET request parameters.")))
+
+
