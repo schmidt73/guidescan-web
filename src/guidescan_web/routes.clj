@@ -42,6 +42,7 @@
   {:job-status (:success | :failure | :pending)
    :failure message}"
   [job-queue job-id]
+  (timbre/info "Job status request from " (:remote-addr req) " for id " job-id)
   (if-let [status (jobs/get-query-status job-queue job-id)]
     (let [failure-message (when (= status :failed) (f/message (jobs/get-query job-queue job-id)))
           json-obj {:job-status status :failure failure-message}]
@@ -59,9 +60,9 @@
   Endpoint: GET /job/result/:format{csv|json|bed}/:id{[0-9]+}
   HTTP Response Code: 200 OK | 404 Not Found
   Response:
-    JSON/BED/CSV containing query result
-  "
+    JSON/BED/CSV containing query result"
   [job-queue format job-id]
+  (timbre/info "Job result request from " (:remote-addr req) " for id " job-id " with format " format)
   (if (= :completed (jobs/get-query-status job-queue job-id))
     (let [result (jobs/get-query job-queue job-id)]
        (when (f/ok? result)

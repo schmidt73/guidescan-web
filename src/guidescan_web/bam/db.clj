@@ -134,7 +134,6 @@
   [bam-db organism enzyme chromosone start-pos end-pos]
   (let [grna-db (config/get-grna-db-path (:config bam-db) organism enzyme)
         genome-structure (get (:genome-structure-map bam-db) {:organism organism :enzyme enzyme})]
-    (timbre/info "query-bam-db" bam-db)
     (try
       (with-open [bam-reader (load-bam-reader
                               (io/file grna-db))
