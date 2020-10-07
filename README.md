@@ -2,22 +2,17 @@
 
 ![Guidescan 2.0 Webpage](https://i.imgur.com/KEps36y.png)
 
-Guidescan-web is a complete rewrite of the previous Guidescan website
-for the modern era. With an emphasis on code quality and rigorous
-testing, there should be little getting in your way when making
-changes to the codebase. There should also be little friction when
-deploying the app! Long gone are the days when reproducing the exact
-environment necessary to host the site is a momentous task in of
-itself. We hope that these changes allow Guidescan to continue to
-thrive as a useful tool for biologists going forward, while
-maintaining it's ability to adapt to new requirements.
+Guidescan-web is the REST back-end for the rewritten, modern Guidescan
+website. We hope that this rewrite alleviates many of the problems in
+the old site, while allowing Guidescan to continue to thrive as a
+useful tool for biologists going forward.
 
 # Installation and Deployment
 
 ## Dependencies
 
 Installation of the dependencies is rather easy, thanks to the great
-clojure package manager [Leiningen](https://leiningen.org/
+Clojure package manager [Leiningen](https://leiningen.org/
 "Leiningen") which is required for this project. Following the
 instructions on the site should make it easy enough to install, but if
 you are on macOS or Debian, running either,
@@ -47,7 +42,7 @@ I list the dependencies here for convenience:
 
 There are two ways to deploy the application: either by packaging the
 code into a standalone JAR file that can be immediately ran on any
-system with an up-to-date version of Java, or by using leiningen to
+system with an up-to-date version of Java, or by using Leiningen to
 run the project for you. Only the former approach will be described
 here as it is the preferred method.
 
@@ -173,6 +168,27 @@ gene body annotations. This is configured on a per organism basis.
 
 All that aside, the easiest way is to take a look at the example
 config and tweak it to your needs.
+
+# REST API
+
+The website exposes a REST API that services gRNA queries. At the
+present, all endpoints are open and no authentication is required for
+access to any of them.
+
+## Query Submission
+
+The query endpoint allows users to submit queries to the service which
+are submitted to a job queue for processing.
+
+* [Query](doc/rest_api/query.md): 'ANY /query'
+
+## Job 
+
+Job endpoints allow users to get the current job status as well as the
+result of successful queries.
+
+* [Job Status](/doc/rest_api/job_status.md): 'GET /job/status/:id{[0-9]+}'
+* [Job Result](/doc/rest_api/job_result.md): 'GET /job/status/:format{csv|json|bed}/:id{[0-9]+}'
 
 ## Testing
 

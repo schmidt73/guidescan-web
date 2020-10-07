@@ -81,6 +81,7 @@
 
 (defn valid-req?
   [req]
+  (prn req)
   (and
    (:params req)
    (or (:query-text (:params req))
