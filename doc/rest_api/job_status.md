@@ -11,7 +11,7 @@ Gets the status of a submitted query given its ID.
 **Code**: `200 OK`
 **Content**:
 
-```json
+```
 {"job-status": [STRING ["success" | "failure" | "pending"]]
  "failure":    [STRING Failure message] // OPTIONAL}
 ```

@@ -10,7 +10,7 @@ region(s) of interests.
 
 The query parameters can be represented by a JSON object as follows:
 
-```json
+```
 {
     "query-text": [STRING Query Text],
     "query-file-upload": [MULTIPART_FORM_DATA Query File],
@@ -58,7 +58,7 @@ query.
 **Code**: `200 OK`
 **Content**
 
-```json
+```
 {
    "job-id": [INT Job ID number]
 }

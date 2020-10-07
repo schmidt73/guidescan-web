@@ -7,6 +7,27 @@ website. We hope that this rewrite alleviates many of the problems in
 the old site, while allowing Guidescan to continue to thrive as a
 useful tool for biologists going forward.
 
+# REST API
+
+The website exposes a REST API that services gRNA queries. At the
+present, all endpoints are open and no authentication is required for
+access to any of them.
+
+## Query Submission
+
+The query endpoint allows users to submit queries to the service which
+are submitted to a job queue for processing.
+
+* [Query](doc/rest_api/query.md): `ANY /query`
+
+## Job 
+
+Job endpoints allow users to get the current job status as well as the
+result of successful queries.
+
+* [Job Status](/doc/rest_api/job_status.md): `GET /job/status/:id{[0-9]+}`
+* [Job Result](/doc/rest_api/job_result.md): `GET /job/status/:format{csv|json|bed}/:id{[0-9]+}`
+
 # Installation and Deployment
 
 ## Dependencies
@@ -169,28 +190,7 @@ gene body annotations. This is configured on a per organism basis.
 All that aside, the easiest way is to take a look at the example
 config and tweak it to your needs.
 
-# REST API
-
-The website exposes a REST API that services gRNA queries. At the
-present, all endpoints are open and no authentication is required for
-access to any of them.
-
-## Query Submission
-
-The query endpoint allows users to submit queries to the service which
-are submitted to a job queue for processing.
-
-* [Query](doc/rest_api/query.md): 'ANY /query'
-
-## Job 
-
-Job endpoints allow users to get the current job status as well as the
-result of successful queries.
-
-* [Job Status](/doc/rest_api/job_status.md): 'GET /job/status/:id{[0-9]+}'
-* [Job Result](/doc/rest_api/job_result.md): 'GET /job/status/:format{csv|json|bed}/:id{[0-9]+}'
-
-## Testing
+# Testing
 
 To run the test suite and ensure everything is working correctly,
 enter,

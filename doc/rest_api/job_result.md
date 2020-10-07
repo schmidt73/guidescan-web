@@ -17,7 +17,7 @@ document the schema for a JSON response here.
 
 Response Schema:
 
-```json
+```
 [[query-region-1 [gRNA-1-1, gRNA-1-2, ...]]
  [query-region-2 [gRNA-2-1, gRNA-2-2, ...]]
  ...
@@ -26,13 +26,13 @@ Response Schema:
 
 or equivalently,
 
-```json
+```
 [ARRAY [2-ARRAY [OBJECT query-region] [ARRAY [OBJECT gRNA]]]]
 ```
 
 where `query-region` has schema,
 
-```json
+```
 {
 "name": [STRING Region Name],
 "organism": [STRING Organism Name],
@@ -42,7 +42,7 @@ where `query-region` has schema,
 
 and `gRNA` has schema,
 
-```json
+```
 {
     "sequence": [STRING Nucleotide Sequence],
     "start": [INT Start coordinate],
