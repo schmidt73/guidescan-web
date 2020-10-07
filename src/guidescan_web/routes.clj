@@ -39,7 +39,7 @@
   Endpoint: GET /job/status/:id{[0-9]+}
   HTTP Response Code: 200 OK | 404 Not Found
   Response:
-  {:job-status (:success | :failure | :pending)
+  {:job-status (:completed | :failed | :pending)
    :failure message}"
   [req job-queue job-id]
   (timbre/info "Job status request from " (:remote-addr req) " for id " job-id)

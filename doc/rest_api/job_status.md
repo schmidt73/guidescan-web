@@ -15,7 +15,7 @@ Gets the status of a submitted query given its ID.
 **Content**:
 
 ```
-{"job-status": [STRING ["success" | "failure" | "pending"]]
+{"job-status": [STRING ["completed" | "failed" | "pending"]]
  "failure":    [STRING Failure message] // OPTIONAL}
 ```
 
