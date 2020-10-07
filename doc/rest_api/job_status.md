@@ -3,12 +3,15 @@
 Gets the status of a submitted query given its ID.
 
 **URL**: `/job/status/:id{[0-9]+}`
+
 **METHOD**: `GET`
 
 ## Success Response
 
 **Condition**: Job is found.
+
 **Code**: `200 OK`
+
 **Content**:
 
 ```
@@ -19,4 +22,5 @@ Gets the status of a submitted query given its ID.
 ## Error Response
 
 **Condition**: Job is not found.
+
 **Code**: `404 Not Found`

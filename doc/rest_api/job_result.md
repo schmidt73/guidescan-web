@@ -4,12 +4,15 @@ Gets the result of a submitted query given its ID and the desired
 format.
 
 **URL**: `/job/result/:format{csv|json|bed}/:id{[0-9]+}`
+
 **METHOD**: `GET`
 
 ## Success Response
 
 **Condition**: Job was successfully completed.
+
 **Code**: 200 OK
+
 **Content**:
 
 A response can come in either a JSON/BED/CSV format. We will

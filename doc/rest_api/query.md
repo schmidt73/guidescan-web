@@ -5,7 +5,9 @@ guideRNAs with few off-targets that are within (or flanking) the
 region(s) of interests.
 
 **URL**: `/query`
+
 **METHOD**: `GET` or `POST`
+
 **Parameters**
 
 The query parameters can be represented by a JSON object as follows:
@@ -55,7 +57,9 @@ Query will always succeed, returning the job ID of the submitted
 query.
 
 **Condition**: None.
+
 **Code**: `200 OK`
+
 **Content**
 
 ```
