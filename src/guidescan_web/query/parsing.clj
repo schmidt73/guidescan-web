@@ -5,50 +5,36 @@
   It assumes the spec located here for BED files:
     - https://m.ensembl.org/info/website/upload/bed.html
   It assumes the spec located here for GFF/GTF files:
-    - https://uswest.ensembl.org/io/website/upload/gff.html")
-
-(defn failure?
-  [parse-tree]
-  (contains? parse-tree :failure))
-
-(defn success?
-  [parse-tree]
-  (contains? parse-tree :success))
-
-(defn skip?
-  [parse-tree]
-  (= :skip (:success parse-tree)))
+    - https://uswest.ensembl.org/io/website/upload/gff.html"
+  (:require [failjure.core :as f]))
 
 (defn- parse-line
   "Parses one line of a text file, returning a parse tree indicating
   success or failure along with an error message."
   [line-number line]
   (if-let [[_ chr start-str end-str] (re-find #"^(chr.*):(\d+)-(\d+)" line)]
-    {:success
-      [chr (Integer/parseInt start-str) (Integer/parseInt end-str)]}
-    {:failure (str "Failed to parse: \"" line "\" on line " (+ 1 line-number))}))
+    [chr (Integer/parseInt start-str) (Integer/parseInt end-str)]
+    (f/fail (str "Failed to parse: \"" line "\" on line " (+ 1 line-number)) )))
 
 (defn- parse-gtf-line
   "Parses one line of a .gtf file, returning a parse tree indicating
   success or failure along with an error message."
   [line-number line]
   (if-let [[_ chr start-str end-str] (re-find #"^(.+)\t.+\t.+\t(\d+)\t(\d+)\t.+\t.+\t.+\t.*" line)]
-    {:success
-     [chr (- (Integer/parseInt start-str) 1) (Integer/parseInt end-str)]}
+    [chr (- (Integer/parseInt start-str) 1) (Integer/parseInt end-str)]
     (if (re-find #"(?i)track(\s|$).*" line)
-      {:success :skip}
-      {:failure (str "Invalid GTF row: \"" line "\" on line " (+ 1 line-number))})))
+      :skip
+      (f/fail (str "Invalid GTF row: \"" line "\" on line " (+ 1 line-number)) ))))
 
 (defn- parse-bed-line
   "Parses one line of .bed file, returning a parse tree indicating
   success or failure along with an error message."
   [line-number line]
   (if-let [[_ chr start-str end-str] (re-find #"^(\S+)\s+(\d+)\s+(\d+)(\s|$).*" line)]
-    {:success
-      [chr (Integer/parseInt start-str) (Integer/parseInt end-str)]}
+    [chr (Integer/parseInt start-str) (Integer/parseInt end-str)]
     (if (re-find #"(?i)(track|browser)(\s|$).*" line)
-      {:success :skip}
-      {:failure (str "Failed to parse: \"" line "\" on line " (+ 1 line-number))})))
+      :skip
+      (f/fail (str "Failed to parse: \"" line "\" on line " (+ 1 line-number)) ))))
 
 (defn- parse-raw-text
   "Parses the raw text line by line using the passed in
@@ -57,11 +43,11 @@
   (let* [parsed-lines
          (->> (clojure.string/split-lines text)
               (map-indexed line-parser)
-              (remove skip?)) 
-         failed-lines (filter failure? parsed-lines)]
+              (remove #(= :skip %))) 
+         failed-lines (filter f/failed? parsed-lines)]
     (if (not-empty failed-lines)
-      (first failed-lines)
-      {:success (map :success parsed-lines)})))
+      (f/fail (clojure.string/join "\n" (map f/message failed-lines)))
+      parsed-lines)))
 
 (defn get-query-type
   "Returns the type of query."
@@ -83,8 +69,8 @@
   type of query, and it handles raw text input, BED files, GTF files,
   and FASTA files.
 
-  The method returns a map indicating either a successful parse tree
-  or failure to parse along with an error message.
+  The method returns either a successful parse tree or a Failure
+  object along with an error message.
 
   A succesful parse tree looks like this:
   [[chrX1 start-1 end-1] [chrX2 start-2 end-2] ...]"

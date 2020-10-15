@@ -19,8 +19,17 @@
 
 (defn get-grna-db-path [config organism enzyme]
   (.getPath
-    (io/file
-     (:grna-database-path-prefix (:config config))
-     (get (:grna-database-path-map (:config config))
-          {:organism organism
-           :enzyme enzyme}))))
+   (io/file
+    (:grna-database-path-prefix (:config config))
+    (get (:grna-database-path-map (:config config))
+         {:organism organism
+          :enzyme enzyme}))))
+
+(defn contains-grna-db-path?
+  "Returns true if the organism and enzyme have a path
+  in the configuration file."
+  [config organism enzyme]
+  (and (contains? (:config config) :grna-database-path-map)
+       (contains? (:grna-database-path-map (:config config))
+                  {:organism organism
+                   :enzyme enzyme})))
