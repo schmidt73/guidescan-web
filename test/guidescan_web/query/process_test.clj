@@ -9,19 +9,19 @@
 (def test-params-good
   {:params {:query-text "chrIV:911700-911800"
             :organism "ce11" :enzyme "cas9"
-            :mode "within" :flank-size 1000
+            :mode "within" 
             :ordering "offtargets" :display "all"}})
 
 (def test-params-bad-no-organism
   {:params {:query-text "chrIV:911700-911800"
             :organism "hg38" :enzyme "cas9"
-            :mode "within" :flank-size 1000
+            :mode "within" 
             :ordering "offtargets" :display "all"}})
 
 (def test-params-bad-no-enzyme
   {:params {:query-text "chrIV:911700-911800"
             :organism "ce11" :enzyme "cas10"
-            :mode "within" :flank-size 1000
+            :mode "within"
             :ordering "offtargets" :display "all"}})
 
 (deftest successful-query-processing
@@ -59,4 +59,4 @@
       (let [result (process/process-query (:bam-db system)
                                           (:gene-annotations system)
                                           {})]
-        (is (= "Invalid POST/GET request parameters." (f/message result)))))))
+        (is (f/failed? result))))))
