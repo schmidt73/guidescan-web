@@ -163,14 +163,3 @@
     [:filter-annotated (parse-req-bool :filter-annotated req) :optional]
     [:topn             (parse-req-int :topn req)              :optional]
     [:flanking         (parse-req-int :flanking req)          :optional]]))
-
-(def successful-full-req
-  {:params {:query-text "chrIV:1100-45000\nchrIV:1100-45000"
-            :enzyme "cas9"
-            :organism "ce11"
-            :filter-annotated "false"
-            :topn "17"
-            :flanking "45"}})
-
-(parse-request successful-full-req)
-
