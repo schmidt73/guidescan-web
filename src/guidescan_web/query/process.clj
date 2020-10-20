@@ -46,10 +46,12 @@
 (defn annotate-grnas
   "Annotates the grnas."
   [gene-annotations organism grnas genomic-region]
-  (let [chr (first (:coords genomic-region))
+  (let [cut-offset 6
+        chr (first (:coords genomic-region))
         annotate-grna
-        (fn [{start :start end :end}]
-          (annotations/get-annotations gene-annotations organism chr start end))]
+        (fn [{start :start end :end rna :sequence dir :direction}]
+          (let [check-pos (if (= dir :positive) (- end cut-offset) (+ start cut-offset))]
+            (annotations/get-annotations gene-annotations organism chr check-pos check-pos)))]
     (map #(assoc % :annotations (annotate-grna %)) grnas)))
 
 (defn split-region-flanking

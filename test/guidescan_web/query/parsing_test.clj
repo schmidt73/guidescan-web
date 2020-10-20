@@ -149,4 +149,5 @@
   (testing "Testing request parsing for a bad query string"
     (clojure.test/is
      (= (f/message (query-parsing/parse-request failed-req-bad-query))
-        "Failed to parse: \"chrIV:11a00-450-00\" on line 1"))))
+        (str "Failed to parse: \"chrIV:11a00-450-00\" on line 1\n"
+             "Line is not of format: \"chrX:start-end\"")))))

@@ -40,7 +40,9 @@
   [line-number line]
   (if-let [[_ chr start-str end-str] (re-find #"^(chr.*):(\d+)-(\d+)" line)]
     [chr (Integer/parseInt start-str) (Integer/parseInt end-str)]
-    (f/fail (str "Failed to parse: \"" line "\" on line " (+ 1 line-number)))))
+    (f/fail (str "Failed to parse: \"%s\" on line %d\n"
+                  "Line is not of format: \"chrX:start-end\"")
+            line (+ 1 line-number))))
 
 (defn- parse-gtf-line
   "Parses one line of a .gtf file, returning a parse tree indicating

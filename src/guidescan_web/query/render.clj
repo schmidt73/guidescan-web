@@ -31,8 +31,10 @@
 (defn grna-to-bed-line
   [chr grna]
   (let [direction (if (= (:direction grna) :positive) "+" "-")
-        name (str chr ":" (:start grna) "-" (:end grna) ":" direction)]
-    (str chr " " (:start grna) " " (:end grna) " " name " 0 " direction)))
+        name (str chr ":" (:start grna) "-" (:end grna))]
+    (clojure.string/join
+     "\t"
+     [chr (:start grna) (:end grna) name "0" direction])))
 
 (defn processed-query-to-bed-entry
   [[genomic-region grnas]]
