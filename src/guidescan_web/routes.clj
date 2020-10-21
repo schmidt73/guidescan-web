@@ -6,6 +6,7 @@
   (:require
    [ring.middleware.defaults :refer :all]
    [compojure.core :refer :all]
+   [compojure.route :as route]
    [selmer.parser :as selmer]
    [failjure.core :as f]
    [cheshire.core :as cheshire]
@@ -71,6 +72,25 @@
           (render/get-content-type format))))
     (not-found "Job result not found.")))
 
+(defn supported-handler
+  "Exposes a REST handler that returns the supported organisms and
+  enzymes by this endpoint.
+
+  REST API:
+
+  Endpoint: GET /info/supported/
+  HTTP Response Code: 200 OK
+  JSON Response:
+  {:supported-organisms [organisms]
+   :supported-enzymes   [enzymes]}"
+  [config]
+  (let [json-obj {:available-organisms (:available-organisms (:config config))
+                  :available-enzymes   (:available-cas-enzymes (:config config))}]
+    (timbre/info "hi")
+    (content-type 
+     (response (cheshire/encode json-obj))
+     (render/get-content-type :json))))
+
 (defn create-routes
   [config job-queue]
   (routes
@@ -78,12 +98,15 @@
    (GET "/job/status/:id{[0-9]+}" [id :as req]
         (job-status-handler req job-queue (Integer/parseInt id)))
    (GET "/job/result/:format{csv|json|bed}/:id{[0-9]+}" [format id :as req]
-        (job-result-handler req job-queue (keyword format) (Integer/parseInt id)))))
+        (job-result-handler req job-queue (keyword format) (Integer/parseInt id)))
+   (GET "/info/supported" []
+        (supported-handler config))
+   (route/not-found "404 page not found.")))
 
 (def www-defaults
   (-> site-defaults
-    (assoc-in [:static :resources] "static")
-    (assoc-in [:security :anti-forgery] false)))
+      (assoc-in [:static :resources] "static")
+      (assoc-in [:security :anti-forgery] false)))
 
 (defn wrap-dir-index [handler]
   (fn [req]

@@ -28,6 +28,14 @@ result of successful queries.
 * [Job Status](/doc/rest_api/job_status.md): `GET /job/status/:id{[0-9]+}`
 * [Job Result](/doc/rest_api/job_result.md): `GET /job/status/:format{csv|json|bed}/:id{[0-9]+}`
 
+## Info
+
+Info endpoints give information about the types of gRNA queries that
+are serviced by this API. Currently, there is one endpoint that
+returns the supported organisms and enzymes available.
+
+* [Supported](/doc/rest_api/supported_info.md): `GET /info/supported`
+
 # Installation and Deployment
 
 ## Dependencies
