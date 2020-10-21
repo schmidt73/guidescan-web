@@ -15,6 +15,6 @@ Returns a JSON object containing the supported organisms and enzymes.
 **Content**:
 
 ```
-{"supported-organisms": [STRING organisms]
- "supported-enzymes":   [STRING enzymes]}
+{"available-organisms": [STRING organisms]
+ "available-enzymes":   [STRING enzymes]}
 ```
