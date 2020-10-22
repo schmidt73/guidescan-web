@@ -83,10 +83,10 @@
   JSON Response:
   {:supported-organisms [organisms]
    :supported-enzymes   [enzymes]}"
-  [config]
+  [req config]
+  (timbre/info "Info request from " (:remote-addr req) ".")
   (let [json-obj {:available-organisms (:available-organisms (:config config))
                   :available-enzymes   (:available-cas-enzymes (:config config))}]
-    (timbre/info "hi")
     (content-type 
      (response (cheshire/encode json-obj))
      (render/get-content-type :json))))
@@ -99,8 +99,8 @@
         (job-status-handler req job-queue (Integer/parseInt id)))
    (GET "/job/result/:format{csv|json|bed}/:id{[0-9]+}" [format id :as req]
         (job-result-handler req job-queue (keyword format) (Integer/parseInt id)))
-   (GET "/info/supported" []
-        (supported-handler config))
+   (GET "/info/supported" req
+        (supported-handler req config))
    (route/not-found "404 page not found.")))
 
 (def www-defaults
