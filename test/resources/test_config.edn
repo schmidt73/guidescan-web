@@ -1,4 +1,6 @@
 {:available-organisms ["ce11"]
+ :db-spec {:jdbcUrl "jdbc:h2:./resources/mock_db"
+           :classname "org.h2.Driver"}
  :available-cas-enzymes ["cas9"]
  :grna-database-path-prefix "test/resources/database/"
  :grna-database-path-map {{:organism "ce11"

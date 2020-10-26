@@ -34,10 +34,14 @@ To add the set of gene symbols for a given organism to the database,
 find the organisms GTF/GFF file on the NCBI FTP server
 (https://ftp.ncbi.nih.gov/genomes).
 
+As an example, download the two files here for C. Elegans:
+  - [chr2acc](https://ftp.ncbi.nih.gov/genomes/refseq/invertebrate/Caenorhabditis_elegans/latest_assembly_versions/GCF_000002985.6_WBcel235/GCF_000002985.6_WBcel235_assembly_structure/Primary_Assembly/assembled_chromosomes/chr2acc)
+  - [organism.gtf.gz](https://ftp.ncbi.nih.gov/genomes/refseq/invertebrate/Caenorhabditis_elegans/latest_assembly_versions/GCF_000002985.6_WBcel235/GCF_000002985.6_WBcel235_genomic.gtf.gz)
+
 Once the file is downloaded, you can run the following script to
 add the organism to the database:
 
 ```shell
 $ lein with-profile add-organism uberjar
-$ java -jar target/add-organism.jar [jdbc-db-url] [organism.gtf.gz]
+$ java -jar target/add-organism.jar [jdbc-db-url] [organism.gtf.gz] [chr2acc]
 ```

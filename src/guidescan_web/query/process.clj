@@ -82,14 +82,14 @@
   "Process the query, returning either a response vector containing the
   processed gRNAs for each [chrX, start, end] input or a failure
   object with an appropriate message."
-  [bam-db gene-annotations req]
+  [bam-db gene-annotations gene-resolver req]
   (f/attempt-all
    [{genomic-regions  :genomic-regions
      enzyme           :enzyme
      organism         :organism
      filter-annotated :filter-annotated
      topn             :topn
-     flanking         :flanking} (parse-request req)
+     flanking         :flanking} (parse-request gene-resolver req)
     converted-regions (convert-regions genomic-regions organism flanking)
     vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)]
    (cond->> vec-of-grnas

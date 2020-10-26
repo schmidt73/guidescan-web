@@ -6,6 +6,12 @@
 (def drop-tables
   "DROP TABLE IF EXISTS genes;")
 
+(def create-chromosome-name-table
+  (->> ["CREATE TABLE chromosomes (accession VARCHAR(1023) NOT NULL,"
+        "                          name VARCHAR(1023) NOT NULL,"
+        "                          PRIMARY KEY (accession));"]
+       (clojure.string/join "\n")))
+
 (def create-gene-id-table
   (->> ["CREATE TABLE genes (entrez_id INT NOT NULL,"
         "                    gene_symbol VARCHAR(1023) NOT NULL,"
@@ -21,6 +27,8 @@
     (timbre/info "Successfully retrieved connection to database")
     (timbre/info "Dropping old tables.")
     (jdbc/execute! conn [drop-tables])
+    (jdbc/execute! conn [create-chromosome-name-table])
+    (timbre/info "Created chromosome table.")
     (jdbc/execute! conn [create-gene-id-table])
     (timbre/info "Created genes table.")))
 

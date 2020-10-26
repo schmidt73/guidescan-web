@@ -6,7 +6,8 @@
     - https://m.ensembl.org/info/website/upload/bed.html
   It assumes the spec located here for GFF/GTF files:
     - https://uswest.ensembl.org/io/website/upload/gff.html"
-  (:require [failjure.core :as f]))
+  (:require [failjure.core :as f]
+            [guidescan-web.genomics.resolver :as resolver]))
 
 (defn- parse-req-bool
   "Parses a boolean out of the request parameters, returning a Failure
@@ -34,15 +35,36 @@
     val
     (f/fail "String %s not found in request parameters." (str params-key))))
 
+(defn- parse-entrez-id
+  [gene-resolver text]
+  (if-let [entrez-id-str (re-find #"^(\d+)-(\d+)" text)]
+    (if-let [gene (resolver/resolve-gene-symbol
+                   gene-resolver (Integer/parseInt entrez-id-str))]
+      [(str "chr" (:chromosomes/name gene))
+       (:genes/start_pos gene) (:genes/end_pos gene)])))
+
+(defn- parse-gene-symbol
+  [gene-resolver text]
+  (if-let [gene (resolver/resolve-gene-symbol gene-resolver text)]
+    [(str "chr" (:chromosomes/name gene))
+     (:genes/start_pos gene) (:genes/end_pos gene)]))
+
+(defn- parse-chromosome
+  [text]
+  (if-let [[_ chr start-str end-str] (re-find #"^(chr.*):(\d+)-(\d+)" text)]
+    [chr (Integer/parseInt start-str) (Integer/parseInt end-str)]))
+
 (defn- parse-line
   "Parses one line of a text file, returning a parse tree indicating
   success or failure along with an error message."
-  [line-number line]
-  (if-let [[_ chr start-str end-str] (re-find #"^(chr.*):(\d+)-(\d+)" line)]
-    [chr (Integer/parseInt start-str) (Integer/parseInt end-str)]
-    (f/fail (str "Failed to parse: \"%s\" on line %d\n"
-                  "Line is not of format: \"chrX:start-end\"")
-            line (+ 1 line-number))))
+  [gene-resolver line-number line]
+  (or (parse-chromosome line)
+      (parse-gene-symbol gene-resolver line)
+      (parse-entrez-id gene-resolver line)
+      (f/fail (str "Failed to parse: \"%s\" on line %d\n"
+                   "Line must be of format \"chrX:start-end\","
+                   " a known gene symbol, or a known Entrez GeneID.")
+              line (+ 1 line-number))))
 
 (defn- parse-gtf-line
   "Parses one line of a .gtf file, returning a parse tree indicating
@@ -79,7 +101,7 @@
 
 (defn get-query-type
   "Returns the type of query."
-  [req]
+  [_ req]
   (if-let [filename (get-in req [:params :query-file-upload :filename])]
     (if (not= filename "")
       (cond
@@ -105,31 +127,31 @@
   get-query-type)
 
 (defmethod parse-genomic-regions :text
-  [req]
+  [gene-resolver req]
   (f/if-let-ok? [query-text (parse-req-string :query-text req)]
-    (parse-raw-text query-text parse-line)))
+    (parse-raw-text query-text (partial parse-line gene-resolver))))
 
 (defmethod parse-genomic-regions :text-file
-  [req]
+  [gene-resolver req]
   (let [text (slurp (get-in req [:params :query-file-upload :tempfile]))]
-    (parse-raw-text text parse-line)))
+    (parse-raw-text text (partial parse-line gene-resolver))))
 
 (defmethod parse-genomic-regions :bed-file
-  [req]
+  [_ req]
   (let [text (slurp (get-in req [:params :query-file-upload :tempfile]))]
     (parse-raw-text text parse-bed-line)))
 
 (defmethod parse-genomic-regions :gtf-file
-  [req]
+  [_ req]
   (let [text (slurp (get-in req [:params :query-file-upload :tempfile]))]
     (parse-raw-text text parse-gtf-line)))
 
 (defmethod parse-genomic-regions :unknown-file
-  [_]
+  [_ _]
   (f/fail "Unknown file type."))
 
 (defmethod parse-genomic-regions :fasta-file
-  [_]
+  [_ _]
   (f/fail "Unsupported file type .fasta"))
 
 (defn failure-vector-into-map
@@ -157,11 +179,11 @@
       :filter-annotated BOOL          OPTIONAL
       :topn INT                       OPTIONAL
       :flanking INT                   OPTIONAL}"
-  [req]
+  [gene-resolver req]
   (failure-vector-into-map
-   [[:genomic-regions  (parse-genomic-regions req)            :required]
-    [:enzyme           (parse-req-string :enzyme req)         :required]
-    [:organism         (parse-req-string :organism req)       :required]
-    [:filter-annotated (parse-req-bool :filter-annotated req) :optional]
-    [:topn             (parse-req-int :topn req)              :optional]
-    [:flanking         (parse-req-int :flanking req)          :optional]]))
+   [[:genomic-regions  (parse-genomic-regions gene-resolver req) :required]
+    [:enzyme           (parse-req-string :enzyme req)            :required]
+    [:organism         (parse-req-string :organism req)          :required]
+    [:filter-annotated (parse-req-bool :filter-annotated req)    :optional]
+    [:topn             (parse-req-int :topn req)                 :optional]
+    [:flanking         (parse-req-int :flanking req)             :optional]]))

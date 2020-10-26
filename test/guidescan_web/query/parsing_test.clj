@@ -1,6 +1,7 @@
 (ns guidescan-web.query.parsing-test
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
+            [guidescan-web.mock :as mock]
             [failjure.core :as f]
             [guidescan-web.query.parsing :as query-parsing]))
 
@@ -37,50 +38,66 @@
 (deftest successful-text-query
   (testing "Testing query parser for good text query."
     (clojure.test/is
-     (f/ok?
-      (query-parsing/parse-genomic-regions good-text-query)))))
-  
+     (mock/with-component-or-system system (mock/test-system-no-www)
+       (f/ok?
+        (query-parsing/parse-genomic-regions (:gene-resolver system)
+                                             good-text-query))))))
+
 (deftest failing-text-query
   (testing "Testing query parser for bad text query."
     (clojure.test/is
-     (f/failed?
-      (query-parsing/parse-genomic-regions bad-text-query)))))
+     (mock/with-component-or-system system (mock/test-system-no-www)
+       (f/failed?
+        (query-parsing/parse-genomic-regions (:gene-resolver system)
+                                             bad-text-query))))))
 
 (deftest successful-text-file-query
   (testing "Testing query parser for a good text file query."
     (clojure.test/is
-     (f/ok?
-      (query-parsing/parse-genomic-regions good-text-file-query)))))
+     (mock/with-component-or-system system (mock/test-system-no-www)
+       (f/ok?
+        (query-parsing/parse-genomic-regions (:gene-resolver system)
+                                             good-text-file-query))))))
 
 (deftest failing-text-file-query
   (testing "Testing query parser for bad text file query."
     (clojure.test/is
-     (f/failed?
-      (query-parsing/parse-genomic-regions bad-text-file-query)))))
+     (mock/with-component-or-system system (mock/test-system-no-www)
+       (f/failed?
+        (query-parsing/parse-genomic-regions (:gene-resolver system)
+                                             bad-text-file-query))))))
 
 (deftest successful-bed-file-query
   (testing "Testing query parser for a good bed file query."
     (clojure.test/is
-     (f/ok?
-      (query-parsing/parse-genomic-regions good-bed-file-query)))))
-  
+     (mock/with-component-or-system system (mock/test-system-no-www)
+       (f/ok?
+        (query-parsing/parse-genomic-regions (:gene-resolver system)
+                                             good-bed-file-query))))))
+
 (deftest failing-bed-file-query
   (testing "Testing query parser for bad bed file query."
     (clojure.test/is
-     (f/failed?
-      (query-parsing/parse-genomic-regions bad-bed-file-query)))))
+     (mock/with-component-or-system system (mock/test-system-no-www)
+       (f/failed?
+        (query-parsing/parse-genomic-regions (:gene-resolver system)
+                                             bad-bed-file-query))))))
 
 (deftest successful-gtf-file-query
   (testing "Testing query parser for a good gtf file query."
     (clojure.test/is
-     (f/ok?
-      (query-parsing/parse-genomic-regions good-gtf-file-query)))))
-  
+     (mock/with-component-or-system system (mock/test-system-no-www)
+       (f/ok?
+        (query-parsing/parse-genomic-regions (:gene-resolver system)
+                                             good-gtf-file-query))))))
+
 (deftest failing-gtf-file-query
   (testing "Testing query parser for bad gtf file query."
     (clojure.test/is
-     (f/failed?
-      (query-parsing/parse-genomic-regions bad-gtf-file-query)))))
+     (mock/with-component-or-system system (mock/test-system-no-www)
+       (f/failed?
+        (query-parsing/parse-genomic-regions (:gene-resolver system)
+                                             bad-gtf-file-query))))))
 
 (def successful-full-req
   {:params {:query-text "chrIV:1100-45000\nchrIV:1100-45000"
@@ -117,37 +134,45 @@
 (deftest successful-full-req-test
   (testing "Testing request parsing for a full set of parameters"
     (clojure.test/is
-     (= (query-parsing/parse-request successful-full-req)
-        {:genomic-regions [["chrIV" 1100 45000] ["chrIV" 1100 45000]],
-         :enzyme "cas9",
-         :organism "ce11",
-         :filter-annotated false,
-         :topn 17,
-         :flanking 45}))))
+      (mock/with-component-or-system system (mock/test-system-no-www)
+       (= (query-parsing/parse-request (:gene-resolver system) successful-full-req)
+          {:genomic-regions [["chrIV" 1100 45000] ["chrIV" 1100 45000]],
+           :enzyme "cas9",
+           :organism "ce11",
+           :filter-annotated false,
+           :topn 17,
+           :flanking 45})))))
 
 (deftest successful-req-bad-topn-test
   (testing "Testing request parsing for a invalid topn string"
     (clojure.test/is
-     (= (query-parsing/parse-request successful-req-bad-topn)
-        {:genomic-regions [["chrIV" 1100 45000] ["chrIV" 1100 45000]]
-         :enzyme "cas9"
-         :organism "ce11"
-         :filter-annotated false
-         :flanking 45}))))
+     (mock/with-component-or-system system (mock/test-system-no-www)
+       (= (query-parsing/parse-request (:gene-resolver system)
+                                       successful-req-bad-topn)
+          {:genomic-regions [["chrIV" 1100 45000] ["chrIV" 1100 45000]]
+           :enzyme "cas9"
+           :organism "ce11"
+           :filter-annotated false
+           :flanking 45})))))
 
 (deftest successful-req-bad-topn-flanking-test
   (testing (str "Testing request parsing for a invalid flanking and topn"
                 "string")
-    (clojure.test/is
-     (= (query-parsing/parse-request successful-req-bad-topn-flanking)
-        {:genomic-regions [["chrIV" 1100 45000] ["chrIV" 1100 45000]]
-         :enzyme "cas9"
-         :organism "ce11"
-         :filter-annotated false}))))
+    (mock/with-component-or-system system (mock/test-system-no-www)
+      (clojure.test/is
+       (= (query-parsing/parse-request (:gene-resolver system)
+                                       successful-req-bad-topn-flanking)
+          {:genomic-regions [["chrIV" 1100 45000] ["chrIV" 1100 45000]]
+           :enzyme "cas9"
+           :organism "ce11"
+           :filter-annotated false})))))
 
 (deftest failed-req-bad-query-test
   (testing "Testing request parsing for a bad query string"
-    (clojure.test/is
-     (= (f/message (query-parsing/parse-request failed-req-bad-query))
-        (str "Failed to parse: \"chrIV:11a00-450-00\" on line 1\n"
-             "Line is not of format: \"chrX:start-end\"")))))
+    (mock/with-component-or-system system (mock/test-system-no-www)
+     (clojure.test/is
+      (.startsWith
+       (f/message
+        (query-parsing/parse-request (:gene-resolver system)
+                                     failed-req-bad-query))
+       (str "Failed to parse: \"chrIV:11a00-450-00\" on line 1\n"))))))

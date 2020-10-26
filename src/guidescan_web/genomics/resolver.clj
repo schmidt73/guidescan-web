@@ -19,23 +19,27 @@
 (defn- create-entrez-id-query [entrez-id]
   (sql/format
    (sql/build
-     :select :*
-     :from :genes
-     :where [:= :genes.entrez_id entrez-id])))
+    :select [:genes/entrez_id :genes/gene_symbol :genes/start_pos
+             :genes/end_pos :genes/sense :chromosomes/name]
+     :from [:genes :chromosomes]
+     :where [:= :genes.entrez_id entrez-id]
+            [:= :genes.chromosome :chromosomes/accession])))
 
 (defn- create-gene-symbol-query [gene-symbol]
   (sql/format
    (sql/build
-     :select :*
-     :from :genes
-     :where [:= :genes.gene_symbol (clojure.string/lower-case gene-symbol)])))
+    :select [:genes/entrez_id :genes/gene_symbol :genes/start_pos
+             :genes/end_pos :genes/sense :chromosomes/name]
+     :from [:genes :chromosomes]
+     :where [:= :genes.gene_symbol gene-symbol]
+            [:= :genes.chromosome :chromosomes/accession]))) 
 
 (defrecord GeneResolver [db-pool config]
   component/Lifecycle
   (start [this]
     (timbre/info "Initializing DB connection pool.")
     (let [pool (create-pool (:db-spec (:config config)))]
-      (timbre/info "Successfully initalized DB connection pool.")
+      (timbre/info "Successfully initialized DB connection pool.")
       (assoc this :db-pool pool)))
   (stop [this]
     (.close db-pool)
@@ -46,8 +50,13 @@
 
 (defn resolve-gene-symbol [gene-resolver gene-symbol]
   (with-open [conn (.getConnection (:db-pool gene-resolver))]
-    (jdbc/execute! conn (create-gene-symbol-query gene-symbol))))
+    (let [genes (jdbc/execute! conn (create-gene-symbol-query gene-symbol))]
+      (if-not (empty? genes)
+        (first genes)))))
 
 (defn resolve-entrez-id [gene-resolver entrez-id]
   (with-open [conn (.getConnection (:db-pool gene-resolver))]
-    (jdbc/execute! conn (create-entrez-id-query entrez-id))))
+    (let [genes (jdbc/execute! conn (create-entrez-id-query entrez-id))]
+      (if-not (empty? genes)
+        (first genes)))))
+

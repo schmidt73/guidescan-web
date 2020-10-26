@@ -29,6 +29,7 @@
     (mock/with-component-or-system system (mock/test-system-no-www)
       (let [[[_ processed-grnas]] (process/process-query (:bam-db system)
                                                          (:gene-annotations system)
+                                                         (:gene-resolver system)
                                                          test-params-good)]
         (is (and
              (= 2 (count processed-grnas))
@@ -42,6 +43,7 @@
     (mock/with-component-or-system system (mock/test-system-no-www)
       (let [result (process/process-query (:bam-db system)
                                           (:gene-annotations system)
+                                          (:gene-resolver system)
                                           test-params-bad-no-organism)]
         (is (= "Unsupported organism-enzyme pair: hg38-cas9" (f/message result)))))))
 
@@ -50,6 +52,7 @@
     (mock/with-component-or-system system (mock/test-system-no-www)
       (let [result (process/process-query (:bam-db system)
                                           (:gene-annotations system)
+                                          (:gene-resolver system)
                                           test-params-bad-no-enzyme)]
         (is (= "Unsupported organism-enzyme pair: ce11-cas10" (f/message result)))))))
 
@@ -58,5 +61,6 @@
     (mock/with-component-or-system system (mock/test-system-no-www)
       (let [result (process/process-query (:bam-db system)
                                           (:gene-annotations system)
+                                          (:gene-resolver system)
                                           {})]
         (is (f/failed? result))))))

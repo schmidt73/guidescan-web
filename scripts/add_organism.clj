@@ -79,10 +79,21 @@
                             (h/values [record])
                             sql/format))))))
 
+(defn add-organism-to-chromosome-table
+  [db-conn chr2acc-file]
+  (with-open [rdr (clojure.java.io/reader chr2acc-file)]
+    (doseq [line (rest (line-seq rdr))]
+      (let [[name accession] (clojure.string/split line #"\s")
+            record {:name name :accession accession}]
+        (jdbc/execute! db-conn
+                       (-> (h/insert-into :chromosomes)
+                           (h/values [record])
+                           sql/format))))))
+    
 (defn usage []
   (->> ["Adds an organism to an existing gene database."
         ""
-        "Usage: java -jar add-organism.jar [jdbc-url-string] [organism.gtf.gz]"]
+        "Usage: java -jar add-organism.jar [jdbc-url-string] [organism.gtf.gz] [organism_chr2acc]"]
        (clojure.string/join \newline)))
 
 (defn -main [& args]
@@ -93,5 +104,6 @@
     (with-open [conn (jdbc/get-connection ds)]
       (timbre/info "Successfully retrieved connection to database")
       (timbre/info "Adding genes to genes table from organism's GTF file.")
-      (add-organism-to-gene-table conn (nth args 1)))))
+      (add-organism-to-gene-table conn (nth args 1))
+      (add-organism-to-chromosome-table conn (nth args 2)))))
 
