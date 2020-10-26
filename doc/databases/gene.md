@@ -18,6 +18,7 @@ $ java -jar target/create-gene-db.jar [jdbc-db-url]
 
 Note that this will DROP all tables in the database named
  - `genes`
+ - `chromosomes`
 
 As an example `jdbc-db-url` you can use the following for postgresql:
 
@@ -31,15 +32,17 @@ classpath (that is the `project.clj` file) for everything to work.
 ## Updating Gene Database
 
 To add the set of gene symbols for a given organism to the database,
-find the organisms GTF/GFF file on the NCBI FTP server
-(https://ftp.ncbi.nih.gov/genomes).
+find the organism on the NCBI FTP server: https://ftp.ncbi.nih.gov/genomes.
 
-As an example, download the two files here for C. Elegans:
+Then, download the two genomes assembly a `.gtf.gz` file and the
+genomes chromosome mapping file named `chr2acc`.
+
+As an example, the two files here for C. Elegans are located here:
   - [chr2acc](https://ftp.ncbi.nih.gov/genomes/refseq/invertebrate/Caenorhabditis_elegans/latest_assembly_versions/GCF_000002985.6_WBcel235/GCF_000002985.6_WBcel235_assembly_structure/Primary_Assembly/assembled_chromosomes/chr2acc)
   - [organism.gtf.gz](https://ftp.ncbi.nih.gov/genomes/refseq/invertebrate/Caenorhabditis_elegans/latest_assembly_versions/GCF_000002985.6_WBcel235/GCF_000002985.6_WBcel235_genomic.gtf.gz)
 
-Once the file is downloaded, you can run the following script to
-add the organism to the database:
+Once the files are downloaded, run the following script to add the
+organism to the database:
 
 ```shell
 $ lein with-profile add-organism uberjar
