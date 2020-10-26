@@ -4,21 +4,16 @@
   (:gen-class))
 
 (def drop-tables
-  "DROP TABLE IF EXISTS genes, gene_symbols;")
+  "DROP TABLE IF EXISTS genes;")
 
 (def create-gene-id-table
   (->> ["CREATE TABLE genes (entrez_id INT NOT NULL,"
+        "                    gene_symbol VARCHAR(1023) NOT NULL,"
         "                    chromosome VARCHAR(1023) NOT NULL,"
         "                    sense BOOL NOT NULL,"
         "                    start_pos INT NOT NULL,"
         "                    end_pos INT NOT NULL,"
-        "                    PRIMARY KEY (entrez_id));"]
-       (clojure.string/join "\n")))
-
-(def create-gene-symbols-table
-  (->> ["CREATE TABLE gene_symbols (gene_symbol VARCHAR(1023) NOT NULL,"
-        "                           entrez_id INT NOT NULL,"
-        "                           PRIMARY KEY (gene_symbol, entrez_id));"]
+        "                    PRIMARY KEY (gene_symbol, entrez_id));"]
        (clojure.string/join "\n")))
 
 (defn create-db [jdbc-url]
@@ -27,9 +22,7 @@
     (timbre/info "Dropping old tables.")
     (jdbc/execute! conn [drop-tables])
     (jdbc/execute! conn [create-gene-id-table])
-    (timbre/info "Created genes table.")
-    (jdbc/execute! conn [create-gene-symbols-table])
-    (timbre/info "Created gene_symbols table.")))
+    (timbre/info "Created genes table.")))
 
 (defn usage []
   (->> ["Creates an empty gene database, deleting old tables if they exist."

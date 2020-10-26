@@ -50,17 +50,24 @@
     (if-let [[_ id-str] (re-find #"GeneID:(\d+)" db-xref)]
       (Integer/parseInt id-str))))
 
+(defn parse-gene-symbol
+  [annotation]
+  (if-let [gene-symbol (get-in annotation [:attribute "gene"])]
+    gene-symbol))
+
 (defn annotation-to-sql-record
   [annotation]
   (if-let [entrez-id (parse-entrez-id annotation)]
-    (if (and (= (:feature_type annotation) "gene")
-             (every? #(contains? annotation %)
-                     [:chromosome :start_pos :end_pos :sense]))
-      {:entrez_id  entrez-id
-       :chromosome (:chromosome annotation)
-       :start_pos  (:start_pos annotation)
-       :end_pos    (:end_pos annotation)
-       :sense      (:sense annotation)})))
+    (if-let [gene-symbol (parse-gene-symbol annotation)]
+      (if (and (= (:feature_type annotation) "gene")
+               (every? #(contains? annotation %)
+                       [:chromosome :start_pos :end_pos :sense]))
+        {:entrez_id   entrez-id
+         :chromosome  (:chromosome annotation)
+         :start_pos   (:start_pos annotation)
+         :end_pos     (:end_pos annotation)
+         :gene_symbol gene-symbol
+         :sense       (:sense annotation)}))))
 
 (defn add-organism-to-gene-table
   [db-conn organism-gtf-file]

@@ -16,7 +16,8 @@
                  [org.clojure/tools.cli "1.0.194"]
                  [seancorfield/next.jdbc "1.1.610"]
                  [honeysql "1.0.444"]
-                 [puppetlabs/postgresql "9.2-1002.jdbc4"]
+                 [org.postgresql/postgresql "42.2.5"]
+                 [com.mchange/c3p0 "0.9.5.5"]
                  [ring "1.8.1"]]
   :profiles {:uberjar {:aot :all}
              :dev {:resource-paths ["test/resources"]
@@ -27,10 +28,6 @@
                     :jar-name "guidescan.jar-THIN"
                     :uberjar-name "guidescan.jar"}
              ;;;; Scripts for various maintenance tasks
-             :add-gene-symbols {:source-paths ^:replace ["scripts"]
-                                :uberjar-name "add-gene-symbols.jar"
-                                :jar-name "add-gene-symbols.jar-THIN"
-                                :main add-gene-symbols}
              :create-gene-db {:source-paths ^:replace ["scripts"]
                               :uberjar-name "create-gene-db.jar"
                               :jar-name "create-gene-db.jar-THIN"

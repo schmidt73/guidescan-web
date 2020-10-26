@@ -2,4 +2,6 @@
  :available-cas-enzymes ["cas9"]
  :grna-database-path-prefix "/home/schmidt73/Desktop/guidescan_public/"
  :grna-database-path-map {{:organism "ce11" :enzyme "cas9"} "cas9_ce11_all_guides.bam"}
- :annotations-map {"ce11" "/home/schmidt73/Downloads/ce11_gene_annotations.bed"}}
+ :annotations-map {"ce11" "/home/schmidt73/Downloads/ce11_gene_annotations.bed"}
+ :db-spec {:classname "org.postgresql.Driver"
+           :jdbcUrl "jdbc:postgresql:guidescan"}}

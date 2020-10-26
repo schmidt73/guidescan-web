@@ -11,13 +11,8 @@
    [guidescan-web.bam.db :as db]
    [guidescan-web.query.jobs :as jobs]
    [guidescan-web.config :as config]
+   [guidescan-web.genomics.resolver :as resolver]
    [guidescan-web.routes :as routes]))
-
-(def x "123\n123")
-
-(map #(str x %) (range 10))
-
-(+ 5 5)
 
 (defrecord WebServer [http-server config job-queue host port]
   component/Lifecycle
@@ -38,6 +33,7 @@
 
 (defn core-system [host port job-age config-file]
   (component/system-map
+   :gene-resolver (component/using (resolver/gene-resolver) [:config])
    :bam-db (component/using (db/create-bam-db) [:config])
    :web-server (component/using (web-server host port) [:config :job-queue])
    :job-queue (component/using (jobs/create-job-queue job-age) [:bam-db :gene-annotations])
