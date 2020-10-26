@@ -13,6 +13,12 @@
    [guidescan-web.config :as config]
    [guidescan-web.routes :as routes]))
 
+(def x "123\n123")
+
+(map #(str x %) (range 10))
+
+(+ 5 5)
+
 (defrecord WebServer [http-server config job-queue host port]
   component/Lifecycle
   (start [this]
