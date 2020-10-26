@@ -62,7 +62,7 @@
       (parse-gene-symbol gene-resolver line)
       (parse-entrez-id gene-resolver line)
       (f/fail (str "Failed to parse: \"%s\" on line %d\n"
-                   "Line must be of format \"chrX:start-end\","
+                   "Line must be either of format \"chrX:start-end\","
                    " a known gene symbol, or a known Entrez GeneID.")
               line (+ 1 line-number))))
 
