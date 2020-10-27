@@ -36,7 +36,7 @@
          genome (:genome genome-structure)
          idx (find-position abs-genome absolute-coords)]
     {:position (- absolute-coords (nth abs-genome idx))
-     :chromosone (first (nth genome idx))}))
+     :chromosome (first (nth genome idx))}))
 
 (defn- to-big-endian-hex-array
   "Takes a byte array in little endian order and converts it
@@ -158,9 +158,9 @@
   "Queries the BAM gRNA database, and parses the output into
   a sequence of gRNAs that overlap with the query.
 
-  Will return a failure object if the chromosone is not in the index
+  Will return a failure object if the chromosome is not in the index
   or if the organism-enzyme pair is not supported."
-  [bam-db organism enzyme chromosone start-pos end-pos]
+  [bam-db organism enzyme chromosome start-pos end-pos]
   (f/attempt-all
    [_ (or (config/contains-grna-db-path? (:config bam-db) organism enzyme)
           (f/fail (format "Unsupported organism-enzyme pair: %s-%s" organism enzyme)))
@@ -169,9 +169,9 @@
    (try
      (with-open [bam-reader (load-bam-reader
                              (io/file grna-db))
-                 iterator (.query bam-reader chromosone start-pos end-pos
+                 iterator (.query bam-reader chromosome start-pos end-pos
                                   false)]
        (let [bam-records (doall (iterator-seq iterator))]
          (vec (map #(parse-query-result genome-structure organism %) bam-records))))
      (catch java.lang.IllegalArgumentException _
-       (f/fail (str "Invalid chromosome \"" chromosone "\" for organism."))))))
+       (f/fail (str "Invalid chromosome \"" chromosome "\" for organism."))))))

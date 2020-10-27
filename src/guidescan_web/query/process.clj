@@ -32,7 +32,7 @@
   "Filters the results of a gRNA query according to the parameters
   specified in the user request map."
   [filter-annotated grnas genomic-region]
-  (let [[chromosone start-pos end-pos] (:coords genomic-region)]
+  (let [[chromosome start-pos end-pos] (:coords genomic-region)]
     (cond->> grnas
       true (filter #(and (<= start-pos (:start %))
                          (>= end-pos (:end %))))
@@ -55,32 +55,30 @@
     (map #(assoc % :annotations (annotate-grna %)) grnas)))
 
 (defn split-region-flanking
-  [[chr start end] flanking-value]
-  [{:name (str chr ":" start "-" end ":left-flank")
+  [{[chr start end] :coords r :region-name} flanking-value]
+  [{:region-name (str r ":left-flank")
     :coords [chr (- start (- flanking-value 1)) start]}
-   {:name (str chr ":" start "-" end ":right-flank")
+   {:region-name (str r ":right-flank")
     :coords [chr end (+ end (- flanking-value 1))]}])
 
 (defn convert-regions
   "Converts genomic regions of the form,
-      [chr, start, end]
+      {:region-name name, :coords [chr, start, end]}
   to ones of the form,
-      {:name name
+      {:region-name name
        :organism organism
        :coords [chr, start, end]}
   converting each region into two when
   we are in flanking mode."
   [genomic-regions organism flanking]
-  (let [name-region #(str (nth % 0) ":" (nth % 1) "-" (nth % 2))]
-    (cond->> genomic-regions
-      (not flanking) (map #(assoc {} :name (name-region %) :coords %))
-      flanking       (map #(split-region-flanking % flanking))
-      flanking       (apply concat)
-      true           (map #(assoc % :organism organism)))))
+  (cond->> genomic-regions
+    flanking       (map #(split-region-flanking % flanking))
+    flanking       (apply concat)
+    true           (map #(assoc % :organism organism))))
 
 (defn process-query
   "Process the query, returning either a response vector containing the
-  processed gRNAs for each [chrX, start, end] input or a failure
+  processed gRNAs for each {:region-name X :coords [chrY, start, end]} input or a failure
   object with an appropriate message."
   [bam-db gene-annotations gene-resolver req]
   (f/attempt-all
