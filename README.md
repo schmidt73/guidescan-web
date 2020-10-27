@@ -80,7 +80,7 @@ First, bundle the code up into an uberjar file by running (read
 "what is an uberjar")),
 
 ``` shell
-$ lein uberjar
+$ lein with-profile prod uberjar
 Retrieving org/clojure/tools.cli/1.0.194/tools.cli-1.0.194.pom from central
 Retrieving org/clojure/pom.contrib/1.0.0/pom.contrib-1.0.0.pom from central
 Retrieving org/clojure/tools.cli/1.0.194/tools.cli-1.0.194.jar from central
@@ -103,8 +103,8 @@ This will install all the dependencies and compile the code, generating
 two jar files:
 
 ``` shell
-target/guidescan-web-2.0.jar
-target/guidescan-web-2.0-standalone.jar
+target/guidescan.jar-THIN
+target/guidescan.jar
 ```
 
 The first jar file does not include all the dependencies, so if you
@@ -116,13 +116,13 @@ for deployment if you desire. Nothing else is needed.
 To run it, simply type,
 
 ``` shell
-$ java -jar guidescan-web-2.0-standalone.jar
+$ java -jar guidescan.jar
 ```
 
 though I recommend increasing the available memory to at least 8GB with the following flag,
 
 ``` shell
-$ java -Xmx8G -jar guidescan-web-2.0-standalone.jar
+$ java -Xmx8G -jar guidescan.jar
 Guidescan 2.0 Webserver
 
 Usage: java -jar guidescan-web.jar [options] -c CONFIG 

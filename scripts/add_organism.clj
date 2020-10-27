@@ -2,6 +2,7 @@
   (:require [next.jdbc :as jdbc]
             [honeysql.core :as sql]
             [honeysql.helpers :as h]
+            [honeysql.format :as fmt]
             [taoensso.timbre :as timbre]
             [failjure.core :as f]
             [script-utils :refer :all])
@@ -69,6 +70,12 @@
          :gene_symbol gene-symbol
          :sense       (:sense annotation)}))))
 
+(defmethod fmt/format-clause :on-conflict-nothing [[op v] sqlmap]
+  (str "ON CONFLICT DO NOTHING"))
+
+(h/defhelper on-conflict-nothing [m args]
+  (assoc m :on-conflict-nothing nil))
+
 (defn add-organism-to-gene-table
   [db-conn organism-gtf-file]
   (doseq [line (lazy-lines-gzip organism-gtf-file)]
@@ -77,6 +84,7 @@
          (jdbc/execute! db-conn
                         (-> (h/insert-into :genes)
                             (h/values [record])
+                            (on-conflict-nothing)
                             sql/format))))))
 
 (defn add-organism-to-chromosome-table
@@ -88,8 +96,9 @@
         (jdbc/execute! db-conn
                        (-> (h/insert-into :chromosomes)
                            (h/values [record])
+                           (on-conflict-nothing)
                            sql/format))))))
-    
+
 (defn usage []
   (->> ["Adds an organism to an existing gene database."
         ""
