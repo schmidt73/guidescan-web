@@ -134,9 +134,10 @@
 (deftest successful-full-req-test
   (testing "Testing request parsing for a full set of parameters"
     (clojure.test/is
-      (mock/with-component-or-system system (mock/test-system-no-www)
+     (mock/with-component-or-system system (mock/test-system-no-www)
        (= (query-parsing/parse-request (:gene-resolver system) successful-full-req)
-          {:genomic-regions [["chrIV" 1100 45000] ["chrIV" 1100 45000]],
+          {:genomic-regions [{:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}
+                             {:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}]
            :enzyme "cas9",
            :organism "ce11",
            :filter-annotated false,
@@ -149,7 +150,8 @@
      (mock/with-component-or-system system (mock/test-system-no-www)
        (= (query-parsing/parse-request (:gene-resolver system)
                                        successful-req-bad-topn)
-          {:genomic-regions [["chrIV" 1100 45000] ["chrIV" 1100 45000]]
+          {:genomic-regions [{:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}
+                             {:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}]
            :enzyme "cas9"
            :organism "ce11"
            :filter-annotated false
@@ -162,7 +164,8 @@
       (clojure.test/is
        (= (query-parsing/parse-request (:gene-resolver system)
                                        successful-req-bad-topn-flanking)
-          {:genomic-regions [["chrIV" 1100 45000] ["chrIV" 1100 45000]]
+          {:genomic-regions [{:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}
+                             {:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}]
            :enzyme "cas9"
            :organism "ce11"
            :filter-annotated false})))))
