@@ -60,7 +60,7 @@
   [annotation]
   (if-let [entrez-id (parse-entrez-id annotation)]
     (if-let [gene-symbol (parse-gene-symbol annotation)]
-      (if (and (= (:feature_type annotation) "gene")
+      (if (and (some #(= (:feature_type annotation) %) ["gene" "protein"])
                (every? #(contains? annotation %)
                        [:chromosome :start_pos :end_pos :sense]))
         {:entrez_id   entrez-id
