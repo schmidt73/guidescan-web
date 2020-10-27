@@ -40,7 +40,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/ok?
-        (query-parsing/parse-genomic-regions (:gene-resolver system)
+        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
                                              good-text-query))))))
 
 (deftest failing-text-query
@@ -48,7 +48,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/failed?
-        (query-parsing/parse-genomic-regions (:gene-resolver system)
+        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
                                              bad-text-query))))))
 
 (deftest successful-text-file-query
@@ -56,7 +56,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/ok?
-        (query-parsing/parse-genomic-regions (:gene-resolver system)
+        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
                                              good-text-file-query))))))
 
 (deftest failing-text-file-query
@@ -64,7 +64,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/failed?
-        (query-parsing/parse-genomic-regions (:gene-resolver system)
+        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
                                              bad-text-file-query))))))
 
 (deftest successful-bed-file-query
@@ -72,7 +72,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/ok?
-        (query-parsing/parse-genomic-regions (:gene-resolver system)
+        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
                                              good-bed-file-query))))))
 
 (deftest failing-bed-file-query
@@ -80,7 +80,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/failed?
-        (query-parsing/parse-genomic-regions (:gene-resolver system)
+        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
                                              bad-bed-file-query))))))
 
 (deftest successful-gtf-file-query
@@ -88,7 +88,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/ok?
-        (query-parsing/parse-genomic-regions (:gene-resolver system)
+        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
                                              good-gtf-file-query))))))
 
 (deftest failing-gtf-file-query
@@ -96,7 +96,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/failed?
-        (query-parsing/parse-genomic-regions (:gene-resolver system)
+        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
                                              bad-gtf-file-query))))))
 
 (def successful-full-req

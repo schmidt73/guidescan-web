@@ -32,11 +32,14 @@
   "Converts from absolute coordinates to
   coordinates with respect to one chromosone."
   [genome-structure absolute-coords]
-  (let* [abs-genome (:absolute-genome genome-structure)
-         genome (:genome genome-structure)
-         idx (find-position abs-genome absolute-coords)]
+  (let [direction (if (> absolute-coords 0) :positive :negative) 
+        absolute-coords (Math/abs absolute-coords)
+        abs-genome (:absolute-genome genome-structure)
+        genome (:genome genome-structure)
+        idx (find-position abs-genome absolute-coords)]
     {:position (- absolute-coords (nth abs-genome idx))
-     :chromosome (first (nth genome idx))}))
+     :chromosome (first (nth genome idx))
+     :direction direction}))
 
 (defn- to-big-endian-hex-array
   "Takes a byte array in little endian order and converts it
@@ -72,7 +75,6 @@
     (->> (to-big-endian-hex-array byte-array)
          (partition 16)
          (map hex-array-to-int)
-         (map #(Math/abs %))
          (reverse)
          (partition-by #(= delim %))
          (filter #(not= (list delim) %))
@@ -115,7 +117,7 @@
 (defn- get-offtarget-delim
   "Gets the delimiter used for parsing off-target info."
   [genome-structure]
-  (+ 1 (reduce #(+ %1 (second %2)) 0 genome-structure)))
+  (- (+ 1 (reduce #(+ %1 (second %2)) 0 genome-structure))))
  
 (defn get-genome-structure
   [bam-comment-field]

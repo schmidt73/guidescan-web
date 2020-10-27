@@ -40,18 +40,18 @@
     (f/fail "String %s not found in request parameters." (str params-key))))
 
 (defn- parse-entrez-id
-  [gene-resolver text]
+  [gene-resolver organism text]
   (if-let [entrez-id-str (re-find #"^(\d+)-(\d+)" text)]
     (if-let [gene (resolver/resolve-gene-symbol
-                   gene-resolver (Integer/parseInt entrez-id-str))]
+                   gene-resolver organism (Integer/parseInt entrez-id-str))]
       {:region-name (:genes/gene_symbol gene)
        :coords
        [(str "chr" (:chromosomes/name gene))
         (:genes/start_pos gene) (:genes/end_pos gene)]})))
 
 (defn- parse-gene-symbol
-  [gene-resolver text]
-  (if-let [gene (resolver/resolve-gene-symbol gene-resolver text)]
+  [gene-resolver organism text]
+  (if-let [gene (resolver/resolve-gene-symbol gene-resolver organism text)]
     {:region-name (:genes/gene_symbol gene)
      :coords
      [(str "chr" (:chromosomes/name gene))
@@ -66,10 +66,10 @@
 (defn- parse-line
   "Parses one line of a text file, returning a parse tree indicating
   success or failure along with an error message."
-  [gene-resolver line-number line]
+  [gene-resolver organism line-number line]
   (or (parse-chromosome line)
-      (parse-gene-symbol gene-resolver line)
-      (parse-entrez-id gene-resolver line)
+      (parse-gene-symbol gene-resolver organism line)
+      (parse-entrez-id gene-resolver organism line)
       (f/fail (str "Failed to parse: \"%s\" on line %d\n"
                    "Line must be either of format \"chrX:start-end\","
                    " a known gene symbol, or a known Entrez GeneID.")
@@ -110,7 +110,7 @@
 
 (defn get-query-type
   "Returns the type of query."
-  [_ req]
+  [_ _ req]
   (if-let [filename (get-in req [:params :query-file-upload :filename])]
     (if (not= filename "")
       (cond
@@ -136,31 +136,31 @@
   get-query-type)
 
 (defmethod parse-genomic-regions :text
-  [gene-resolver req]
+  [gene-resolver organism req]
   (f/if-let-ok? [query-text (parse-req-string :query-text req)]
-    (parse-raw-text query-text (partial parse-line gene-resolver))))
+    (parse-raw-text query-text (partial parse-line gene-resolver organism))))
 
 (defmethod parse-genomic-regions :text-file
-  [gene-resolver req]
+  [gene-resolver organism req]
   (let [text (slurp (get-in req [:params :query-file-upload :tempfile]))]
-    (parse-raw-text text (partial parse-line gene-resolver))))
+    (parse-raw-text text (partial parse-line gene-resolver organism))))
 
 (defmethod parse-genomic-regions :bed-file
-  [_ req]
+  [_ _ req]
   (let [text (slurp (get-in req [:params :query-file-upload :tempfile]))]
     (parse-raw-text text parse-bed-line)))
 
 (defmethod parse-genomic-regions :gtf-file
-  [_ req]
+  [_ _ req]
   (let [text (slurp (get-in req [:params :query-file-upload :tempfile]))]
     (parse-raw-text text parse-gtf-line)))
 
 (defmethod parse-genomic-regions :unknown-file
-  [_ _]
+  [_ _ _]
   (f/fail "Unknown file type."))
 
 (defmethod parse-genomic-regions :fasta-file
-  [_ _]
+  [_ _ _]
   (f/fail "Unsupported file type .fasta"))
 
 (defn failure-vector-into-map
@@ -190,10 +190,13 @@
       :topn INT                       OPTIONAL
       :flanking INT                   OPTIONAL}"
   [gene-resolver req]
-  (failure-vector-into-map
-   [[:genomic-regions  (parse-genomic-regions gene-resolver req) :required]
-    [:enzyme           (parse-req-string :enzyme req)            :required]
-    [:organism         (parse-req-string :organism req)          :required]
-    [:filter-annotated (parse-req-bool :filter-annotated req)    :optional]
-    [:topn             (parse-req-int :topn req)                 :optional]
-    [:flanking         (parse-req-int :flanking req)             :optional]]))
+  (f/attempt-all
+   [parsed-request
+    (failure-vector-into-map
+     [[:enzyme           (parse-req-string :enzyme req)            :required]
+      [:organism         (parse-req-string :organism req)          :required]
+      [:filter-annotated (parse-req-bool :filter-annotated req)    :optional]
+      [:topn             (parse-req-int :topn req)                 :optional]
+      [:flanking         (parse-req-int :flanking req)             :optional]])
+    genomic-regions (parse-genomic-regions gene-resolver (:organism parsed-request) req)]
+   (assoc parsed-request :genomic-regions genomic-regions)))

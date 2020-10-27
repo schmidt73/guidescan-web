@@ -4,11 +4,12 @@
   (:gen-class))
 
 (def drop-tables
-  "DROP TABLE IF EXISTS genes;")
+  "DROP TABLE IF EXISTS genes, chromosomes;")
 
 (def create-chromosome-name-table
   (->> ["CREATE TABLE chromosomes (accession VARCHAR(1023) NOT NULL,"
         "                          name VARCHAR(1023) NOT NULL,"
+        "                          organism VARCHAR(1023) NOT NULL,"
         "                          PRIMARY KEY (accession));"]
        (clojure.string/join "\n")))
 

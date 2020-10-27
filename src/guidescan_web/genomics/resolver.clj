@@ -16,23 +16,27 @@
                (.setMaxIdleTime (* 3 60 60)))]
     cpds))
 
-(defn- create-entrez-id-query [entrez-id]
+(defn- create-entrez-id-query [organism entrez-id]
   (sql/format
    (sql/build
     :select [:genes/entrez_id :genes/gene_symbol :genes/start_pos
              :genes/end_pos :genes/sense :chromosomes/name]
-     :from [:genes :chromosomes]
-     :where [:= :genes.entrez_id entrez-id]
-            [:= :genes.chromosome :chromosomes/accession])))
+    :from [:genes :chromosomes]
+    :where [:and
+            [:= :genes/entrez_id entrez-id]
+            [:= :genes/chromosome :chromosomes/accession]
+            [:= organism :chromosomes/organism]]))) 
 
-(defn- create-gene-symbol-query [gene-symbol]
+(defn- create-gene-symbol-query [organism gene-symbol]
   (sql/format
    (sql/build
     :select [:genes/entrez_id :genes/gene_symbol :genes/start_pos
              :genes/end_pos :genes/sense :chromosomes/name]
-     :from [:genes :chromosomes]
-     :where [:= :genes.gene_symbol gene-symbol]
-            [:= :genes.chromosome :chromosomes/accession]))) 
+    :from [:genes :chromosomes]
+    :where [:and
+            [:= :genes/gene_symbol gene-symbol]
+            [:= :genes/chromosome :chromosomes/accession]
+            [:= organism :chromosomes/organism]]))) 
 
 (defrecord GeneResolver [db-pool config]
   component/Lifecycle
@@ -48,15 +52,15 @@
 (defn gene-resolver []
   (map->GeneResolver {}))
 
-(defn resolve-gene-symbol [gene-resolver gene-symbol]
+(defn resolve-gene-symbol [gene-resolver organism gene-symbol]
   (with-open [conn (.getConnection (:db-pool gene-resolver))]
-    (let [genes (jdbc/execute! conn (create-gene-symbol-query gene-symbol))]
+    (let [genes (jdbc/execute! conn (create-gene-symbol-query organism gene-symbol))]
       (if-not (empty? genes)
         (first genes)))))
 
-(defn resolve-entrez-id [gene-resolver entrez-id]
+(defn resolve-entrez-id [gene-resolver organism entrez-id]
   (with-open [conn (.getConnection (:db-pool gene-resolver))]
-    (let [genes (jdbc/execute! conn (create-entrez-id-query entrez-id))]
+    (let [genes (jdbc/execute! conn (create-entrez-id-query organism entrez-id))]
       (if-not (empty? genes)
         (first genes)))))
 
