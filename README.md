@@ -198,7 +198,7 @@ generating this database can be found at
 [gene-db](doc/databases/gene.md). Once the DB is generated, it is linked
 in by adding the following entry to the configuration:
 
-``` shell
+``` clojure
 {:db-spec {:classname "org.postgresql.Driver"
            :jdbcUrl "jdbc:postgresql:guidescan?user=USER&pass=PASS"}}
 ```
