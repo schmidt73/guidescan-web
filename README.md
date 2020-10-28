@@ -192,6 +192,21 @@ like this:
 where the `:grna-database-path-prefix` is added for convenience and
 can be removed if not necessary.
 
+To ensure that gene symbol names are correctly resolved, one must link
+in the `gene-symbol` database. All information about correctly
+generating this database can be found at
+[gene-db](doc/databases/gene.md). Once the DB is generated, it is linked
+in by adding the following entry to the configuration:
+
+``` shell
+{:db-spec {:classname "org.postgresql.Driver"
+           :jdbcUrl "jdbc:postgresql:guidescan?user=USER&pass=PASS"}}
+```
+
+Any SQL DB can be used, though the correct JDBC driver will needed to
+be added to the classpath. This can be done simply by adding the
+dependency to the `project.clj` file.
+
 Finally, there is an `:annotations-map` that takes organisms to their
 gene body annotations. This is configured on a per organism basis.
 

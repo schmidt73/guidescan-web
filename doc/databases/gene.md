@@ -46,5 +46,8 @@ organism to the database:
 
 ```shell
 $ lein with-profile add-organism uberjar
-$ java -jar target/add-organism.jar [jdbc-db-url] [organism.gtf.gz] [chr2acc]
+$ java -jar target/add-organism.jar [jdbc-db-url] [organism.gtf.gz] [chr2acc] [organism-name]
 ```
+
+Ensure that the organism name matches what is used in your
+configuration file.
