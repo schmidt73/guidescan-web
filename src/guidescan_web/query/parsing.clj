@@ -41,7 +41,7 @@
 
 (defn- parse-entrez-id
   [gene-resolver organism text]
-  (if-let [entrez-id-str (re-find #"^(\d+)-(\d+)" text)]
+  (if-let [[_ entrez-id-str] (re-find #"^(\d+)" text)]
     (if-let [gene (resolver/resolve-gene-symbol
                    gene-resolver organism (Integer/parseInt entrez-id-str))]
       {:region-name (:genes/gene_symbol gene)
