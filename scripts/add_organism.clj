@@ -18,7 +18,11 @@
         matcher (re-matcher kv-re field)
         attribute (transient {})]
     (while (.find matcher)
-      (assoc! attribute (.group matcher "key") (.group matcher "value")))
+      (let [k (.group matcher "key")
+            v (.group matcher "value")]
+        (if (contains? attribute k)
+          (assoc! attribute k (conj (get attribute k) v))
+          (assoc! attribute k [v]))))
     (persistent! attribute)))
 
 (defn parse-gtf-annotation-line
@@ -47,28 +51,38 @@
 
 (defn parse-entrez-id
   [annotation]
-  (if-let [db-xref (get-in annotation [:attribute "db_xref"])]
-    (if-let [[_ id-str] (re-find #"GeneID:(\d+)" db-xref)]
+  (if-let [db-xrefs (get-in annotation [:attribute "db_xref"])]
+    (if-let [[_ id-str] (some #(re-find #"GeneID:(\d+)" %) db-xrefs)]
       (Integer/parseInt id-str))))
 
-(defn parse-gene-symbol
+(defn parse-gene-symbols
   [annotation]
-  (if-let [gene-symbol (get-in annotation [:attribute "gene"])]
-    gene-symbol))
+  (if-let [gene-symbols (get-in annotation [:attribute "gene"])]
+    (concat gene-symbols (get-in annotation [:attribute "gene_synonym"]))))
 
-(defn annotation-to-sql-record
+(defn create-sql-record
+  [entrez-id chr start end sense gene-symbol]
+  {:entrez_id   entrez-id
+   :chromosome  chr
+   :start_pos   start
+   :end_pos     end
+   :gene_symbol gene-symbol
+   :sense       sense})
+
+(defn annotation-to-sql-records
   [annotation]
   (if-let [entrez-id (parse-entrez-id annotation)]
-    (if-let [gene-symbol (parse-gene-symbol annotation)]
+    (if-let [gene-symbols (parse-gene-symbols annotation)]
       (if (and (some #(= (:feature_type annotation) %) ["gene" "protein"])
                (every? #(contains? annotation %)
                        [:chromosome :start_pos :end_pos :sense]))
-        {:entrez_id   entrez-id
-         :chromosome  (:chromosome annotation)
-         :start_pos   (:start_pos annotation)
-         :end_pos     (:end_pos annotation)
-         :gene_symbol gene-symbol
-         :sense       (:sense annotation)}))))
+        (mapv #(create-sql-record entrez-id
+                                  (:chromosome annotation)
+                                  (:start_pos annotation)
+                                  (:end_pos annotation)
+                                  (:sense annotation)
+                                  %)
+              gene-symbols)))))
 
 (defmethod fmt/format-clause :on-conflict-nothing [[op v] sqlmap]
   (str "ON CONFLICT DO NOTHING"))
@@ -80,10 +94,10 @@
   [db-conn organism-gtf-file]
   (doseq [line (lazy-lines-gzip organism-gtf-file)]
     (f/attempt-all [annotation (f/try* (parse-gtf-annotation-line line))]
-       (if-let [record (annotation-to-sql-record annotation)]
+       (if-let [records (annotation-to-sql-records annotation)]
          (jdbc/execute! db-conn
                         (-> (h/insert-into :genes)
-                            (h/values [record])
+                            (h/values records)
                             (on-conflict-nothing)
                             sql/format))))))
 
