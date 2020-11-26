@@ -20,7 +20,11 @@ The query parameters can be represented by a JSON object as follows:
     "organism": [STRING Organism to query against],
     "topn-value": [INT Keep only this many of the best gRNAs], // OPTIONAL
     "flanking": [INT Search this distance around genomic region], // OPTIONAL
-    "filter-annotated": [BOOL Remove non-annotated queries from result] // OPTIONAL
+    "filter-annotated": [BOOL Remove non-annotated queries from result], // OPTIONAL
+    "s-bounds-l": [FLOAT Lower bound for specificity of gRNAs], // OPTIONAL
+    "s-bounds-u": [FLOAT Upper bound for specificity of gRNAs], // OPTIONAL
+    "ce-bounds-l": [FLOAT Lower bound for cutting-efficiency of gRNAs], // OPTIONAL
+    "ce-bounds-u": [FLOAT Upper bound for cutting-efficiency of gRNAs] // OPTIONAL
 }
 ```
 
