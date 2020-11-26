@@ -31,11 +31,20 @@
 (defn filter-results
   "Filters the results of a gRNA query according to the parameters
   specified in the user request map."
-  [filter-annotated grnas genomic-region]
-  (let [[chromosome start-pos end-pos] (:coords genomic-region)]
+  [{:keys [cutting-efficiency-bounds specificity-bounds filter-annotated]}
+   grnas
+   genomic-region]
+  (let [[chromosome start-pos end-pos] (:coords genomic-region)
+        within (fn [k {:keys [lower upper]}]
+                 (fn [grna]
+                   (if-let [v (k grna)]
+                     (and (<= lower v) (>= upper v))
+                     true)))]
     (cond->> grnas
       true (filter #(and (<= start-pos (:start %))
                          (>= end-pos (:end %))))
+      cutting-efficiency-bounds (filter (within :cutting-efficiency cutting-efficiency-bounds))
+      specificity-bounds (filter (within :specificity specificity-bounds))
       filter-annotated (filter #(not-empty (:annotations %))))))
 
 (defn keep-only-top-n
@@ -82,17 +91,23 @@
   object with an appropriate message."
   [bam-db gene-annotations gene-resolver req]
   (f/attempt-all
-   [{genomic-regions  :genomic-regions
-     enzyme           :enzyme
-     organism         :organism
-     filter-annotated :filter-annotated
-     topn             :topn
-     flanking         :flanking} (parse-request gene-resolver req)
+   [{:keys [genomic-regions
+            enzyme
+            organism
+            filter-annotated
+            topn
+            cutting-efficiency-bounds
+            specificity-bounds
+            flanking]}
+    (parse-request gene-resolver req)
     converted-regions (convert-regions genomic-regions organism flanking)
-    vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)]
+    vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)
+    filter-opts {:filter-annotated filter-annotated
+                 :cutting-efficiency-bounds cutting-efficiency-bounds
+                 :specificity-bounds specificity-bounds}]
    (cond->> vec-of-grnas
      true (map #(annotate-grnas gene-annotations organism %2 %1) converted-regions)
-     true (map #(filter-results filter-annotated %2 %1) converted-regions)
+     true (map #(filter-results filter-opts %2 %1) converted-regions)
      true (map #(sort-results "num-off-targets" %2 %1) converted-regions)
      (some? topn) (map #(keep-only-top-n topn %))
      true (map vector converted-regions))))

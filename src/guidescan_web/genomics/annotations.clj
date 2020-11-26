@@ -4,6 +4,7 @@
   (:import htsjdk.tribble.index.interval.IntervalTree
            htsjdk.tribble.index.interval.Interval)
   (:require [com.stuartsierra.component :as component]
+            [failjure.core :as f]
             [taoensso.timbre :as timbre]))
 
 (defn private-field 
@@ -50,10 +51,17 @@
   (start [this]
     (timbre/info "Constructing interval trees for gene annotations.")
     (when (or (nil? interval-trees) (nil? interval-maps))
-      (let [annotations-map (get-in config [:config :annotations-map])
-            annotations (map-in annotations-map parse-annotations-file)]
-        (assoc this :interval-maps (map-in annotations create-interval-map)
-                    :interval-trees (map-in annotations create-interval-tree)))))
+      (if-let [annotations-map (get-in config [:config :annotations-map])]
+        (let [annotations (map-in annotations-map parse-annotations-file)]
+          (if (empty? annotations)
+            (do
+              (timbre/warn ":annotations-map is empty, continuing regardless.")
+              this)
+            (assoc this :interval-maps (map-in annotations create-interval-map)
+                        :interval-trees (map-in annotations create-interval-tree))))
+        (do
+          (timbre/warn ":annotations-map not found, continuing regardless.")
+          this))))
   (stop [this]))
 
 (defn gene-annotations []
@@ -65,5 +73,9 @@
   [gene-annotations organism chr start end]
   (let [it-map (get (:interval-maps gene-annotations) organism)
         it-tree (get (:interval-trees gene-annotations) organism)]
-    (get-annotations-helper it-tree it-map chr start end)))
+    (if (and it-map it-tree)
+      (get-annotations-helper it-tree it-map chr start end)
+      [])))  
 
+;; I need a macro that allows me to combine let and conditionals
+;; in a more flexible way.

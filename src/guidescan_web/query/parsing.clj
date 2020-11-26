@@ -39,6 +39,17 @@
     val
     (f/fail "String %s not found in request parameters." (str params-key))))
 
+(defn parse-bounds
+  [params-key-l params-key-u req]
+  (let [lower-s (get (:params req) params-key-l)
+        upper-s (get (:params req) params-key-u)]
+    (if (and lower-s upper-s)
+      (f/try-all [lower (Float/parseFloat lower-s)
+                  upper (Float/parseFloat upper-s)]
+        {:upper upper :lower lower}
+        (f/fail "Parameters %s and %s are floating point." params-key-l params-key-u))
+      (f/fail "Parameters %s and %s not found." params-key-l params-key-u))))
+
 (defn- parse-entrez-id
   [gene-resolver organism text]
   (if-let [[_ entrez-id-str] (re-find #"^(\d+)" text)]
@@ -193,10 +204,12 @@
   (f/attempt-all
    [parsed-request
     (failure-vector-into-map
-     [[:enzyme           (parse-req-string :enzyme req)            :required]
-      [:organism         (parse-req-string :organism req)          :required]
-      [:filter-annotated (parse-req-bool :filter-annotated req)    :optional]
-      [:topn             (parse-req-int :topn req)                 :optional]
-      [:flanking         (parse-req-int :flanking req)             :optional]])
+     [[:enzyme (parse-req-string :enzyme req) :required]
+      [:organism (parse-req-string :organism req) :required]
+      [:filter-annotated (parse-req-bool :filter-annotated req) :optional]
+      [:topn (parse-req-int :topn req) :optional]
+      [:flanking (parse-req-int :flanking req) :optional]
+      [:cutting-efficiency-bounds (parse-bounds :ce-bounds-l :ce-bounds-u req) :optional]
+      [:specificity-bounds (parse-bounds :s-bounds-l :s-bounds-u req) :optional]])
     genomic-regions (parse-genomic-regions gene-resolver (:organism parsed-request) req)]
    (assoc parsed-request :genomic-regions genomic-regions)))

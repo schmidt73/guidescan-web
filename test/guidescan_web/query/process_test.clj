@@ -24,6 +24,17 @@
             :mode "within"
             :ordering "offtargets" :display "all"}})
 
+(deftest filter-results-test
+  (testing "That result filtering works correctly."
+    (let [result
+          (process/filter-results
+           {:filter-annotated false
+            :cutting-efficiency-bounds {:upper 1 :lower 0}
+            :specificity-bounds {:upper 10 :lower 0}}
+           [{:start 150 :end 175 :cutting-efficiency 0.8}]
+           {:coords ["chr" 100 200]})]
+      (is (= result '({:start 150, :end 175, :cutting-efficiency 0.8}))))))
+
 (deftest successful-query-processing
   (testing "Testing that a query is successfully processed."
     (mock/with-component-or-system system (mock/test-system-no-www)
