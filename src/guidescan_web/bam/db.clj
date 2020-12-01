@@ -12,34 +12,8 @@
    [com.stuartsierra.component :as component]
    [taoensso.timbre :as timbre]
    [guidescan-web.config :as config]
-   [guidescan-web.genomics.grna :as grna]))
-
-(defn find-position
-  "Finds the index of the value in an ascending sorted array using
-  binary search, if the value is not found, it returns the index of
-  the rightmost element whose value is less than the search value."
-  ([arr v sp ep]
-   (if (>= sp ep) ep
-     (let [idx (+ sp (long (Math/ceil (/ (- ep sp) 2))))
-           middle-val (nth arr idx)]
-       (cond
-         (<= middle-val v) (find-position arr v idx ep)
-         :otherwise        (find-position arr v 0 (- idx 1))))))
-  ([arr v]
-   (find-position arr v 0 (- (count arr) 1))))
- 
-(defn- to-genomic-coordinates
-  "Converts from absolute coordinates to
-  coordinates with respect to one chromosone."
-  [genome-structure absolute-coords]
-  (let [direction (if (> absolute-coords 0) :positive :negative) 
-        absolute-coords (Math/abs absolute-coords)
-        abs-genome (:absolute-genome genome-structure)
-        genome (:genome genome-structure)
-        idx (find-position abs-genome absolute-coords)]
-    {:position (- absolute-coords (nth abs-genome idx))
-     :chromosome (first (nth genome idx))
-     :direction direction}))
+   [guidescan-web.genomics.grna :as grna]
+   [guidescan-web.genomics.structure :as genome-structure]))
 
 (defn- to-big-endian-hex-array
   "Takes a byte array in little endian order and converts it
@@ -66,7 +40,7 @@
 (defn- convert-offtarget-entry
   [genome entry]
   {:distance (last entry)
-   :coords (vec (map #(to-genomic-coordinates genome %)
+   :coords (vec (map #(genome-structure/to-genomic-coordinates genome %)
                      (drop-last (rest entry))))})
 
 (defn- parse-offtarget-info [genome-structure byte-array]
@@ -110,24 +84,6 @@
       (clojure.string/replace ")" "]")
       (read-string)))
 
-(defn- get-absolute-genome-structure
-  [genome-structure]
-  (vec (reductions #(+ %1 (second %2)) 0 genome-structure))) 
-
-(defn- get-offtarget-delim
-  "Gets the delimiter used for parsing off-target info."
-  [genome-structure]
-  (- (+ 1 (reduce #(+ %1 (second %2)) 0 genome-structure))))
- 
-(defn get-genome-structure
-  [bam-comment-field]
-  (let [genome (get-genome-structure-raw bam-comment-field)
-        absolute-genome (get-absolute-genome-structure genome)
-        off-target-delim (get-offtarget-delim genome)]
-    {:genome genome
-     :absolute-genome absolute-genome
-     :off-target-delim off-target-delim}))
-
 (defn get-genome-structure-map
   "Parses the genome structure out of all the BAM file headers into a
   map from organism-enzyme pairs to genome structures. The
@@ -142,7 +98,7 @@
          (as-> (.getFileHeader bam-reader) e
            (.getComments e)
            (nth e 3)
-           (get-genome-structure e)
+           (genome-structure/get-genome-structure (get-genome-structure-raw e))
            (vector {:organism organism :enzyme enzyme} e)))))))
 
 (defrecord BamDB [config genome-structure-map]

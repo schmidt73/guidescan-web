@@ -68,6 +68,23 @@
      [(str "chr" (:chromosomes/name gene))
       (:genes/start_pos gene) (:genes/end_pos gene)]}))
 
+(defn- parse-rna-sequence
+  [gene-resolver organism text]
+  (let [rna-seq (-> (clojure.string/upper-case text)
+                    (clojure.string/trim-newline)
+                    (clojure.string/trim))
+        rna-len (count rna-seq)
+        region-name (if (> rna-len 30)
+                      (str (subs rna-seq 0 10)
+                           "..."
+                           (subs rna-seq (- rna-len 11) (- rna-len 1)))
+                      rna-seq)]
+    (if (re-matches #"^[ATCGRN]+$" rna-seq)
+      (if-let [coords (resolver/resolve-sequence gene-resolver organism rna-seq)]
+        {:region-name region-name
+         :coords
+         [(str "chr" (:chromosome coords)) (:position coords) (+ (:position coords) rna-len)]}))))
+
 (defn- parse-chromosome
   [text]
   (if-let [[_ chr start-str end-str] (re-find #"^(chr.*):(\d+)-(\d+)" text)]
@@ -81,9 +98,11 @@
   (or (parse-chromosome line)
       (parse-gene-symbol gene-resolver organism line)
       (parse-entrez-id gene-resolver organism line)
+      (parse-rna-sequence gene-resolver organism line)
       (f/fail (str "Failed to parse: \"%s\" on line %d\n"
                    "Line must be either of format \"chrX:start-end\","
-                   " a known gene symbol, or a known Entrez GeneID.")
+                   " a known gene symbol, a known Entrez GeneID, or"
+                   " the sequence of a genomic locus.")
               line (+ 1 line-number))))
 
 (defn- parse-gtf-line
