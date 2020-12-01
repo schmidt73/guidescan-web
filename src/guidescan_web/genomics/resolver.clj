@@ -130,12 +130,28 @@
       (if-not (empty? chrs)
         (first chrs)))))
 
+(defn- reverse-complement
+  [seq]
+  (->> seq
+       (map #(case %
+               \A \T
+               \T \A
+               \G \C
+               \C \G
+               %))
+       (reverse)
+       (clojure.string/join)))
+
 (defn- search-genome
   [{:keys [structure sequence]} search-sequence]
-  (let [abs-pos (-> (RabinKarp. search-sequence)
-                    (.search sequence))]
-    (if-not (= abs-pos (count sequence))
-      (genome-structure/to-genomic-coordinates structure abs-pos))))
+  (let [forward-pos (-> (RabinKarp. search-sequence)
+                        (.search sequence))]
+    (if-not (= forward-pos (count sequence))
+      (genome-structure/to-genomic-coordinates structure forward-pos)
+      (let [backward-pos (-> (RabinKarp. (reverse-complement search-sequence))
+                             (.search sequence))]
+        (if-not (= backward-pos (count sequence))
+          (genome-structure/to-genomic-coordinates structure (- backward-pos)))))))
 
 (defn resolve-sequence [gene-resolver organism sequence]
   (if-let [gs (get (:genome-structures gene-resolver) organism)]

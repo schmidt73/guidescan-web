@@ -68,23 +68,6 @@
      [(str "chr" (:chromosomes/name gene))
       (:genes/start_pos gene) (:genes/end_pos gene)]}))
 
-(defn- parse-rna-sequence
-  [gene-resolver organism text]
-  (let [rna-seq (-> (clojure.string/upper-case text)
-                    (clojure.string/trim-newline)
-                    (clojure.string/trim))
-        rna-len (count rna-seq)
-        region-name (if (> rna-len 30)
-                      (str (subs rna-seq 0 10)
-                           "..."
-                           (subs rna-seq (- rna-len 11) (- rna-len 1)))
-                      rna-seq)]
-    (if (re-matches #"^[ATCGRN]+$" rna-seq)
-      (if-let [coords (resolver/resolve-sequence gene-resolver organism rna-seq)]
-        {:region-name region-name
-         :coords
-         [(str "chr" (:chromosome coords)) (:position coords) (+ (:position coords) rna-len)]}))))
-
 (defn- parse-chromosome
   [text]
   (if-let [[_ chr start-str end-str] (re-find #"^(chr.*):(\d+)-(\d+)" text)]
@@ -98,11 +81,9 @@
   (or (parse-chromosome line)
       (parse-gene-symbol gene-resolver organism line)
       (parse-entrez-id gene-resolver organism line)
-      (parse-rna-sequence gene-resolver organism line)
       (f/fail (str "Failed to parse: \"%s\" on line %d\n"
                    "Line must be either of format \"chrX:start-end\","
-                   " a known gene symbol, a known Entrez GeneID, or"
-                   " the sequence of a genomic locus.")
+                   " a known gene symbol, or a known Entrez GeneID.")
               line (+ 1 line-number))))
 
 (defn- parse-gtf-line
@@ -138,6 +119,27 @@
       (f/fail (clojure.string/join "\n" (map f/message failed-lines)))
       parsed-lines)))
 
+(defn- parse-rna-sequence
+  "Parses the raw-text as an RNA sequence returning a parse tree
+  indicating the region on success, or a failure message otherwise."
+  [gene-resolver organism text]
+  (let [rna-seq (-> (clojure.string/upper-case text)
+                    (clojure.string/replace #"[\n\r]" "")
+                    (clojure.string/trim))
+        rna-len (count rna-seq)
+        region-name (if (> rna-len 30)
+                      (str (subs rna-seq 0 10)
+                           "..."
+                           (subs rna-seq (- rna-len 11) (- rna-len 1)))
+                      rna-seq)]
+    (if (re-matches #"^[ATCGRN]+$" rna-seq)
+      (if-let [coords (resolver/resolve-sequence gene-resolver organism rna-seq)]
+        [{:region-name region-name
+          :coords
+          [(str "chr" (:chromosome coords)) (:position coords) (+ (:position coords) rna-len)]}]
+        (f/fail "DNA sequence not found in %s." organism))
+      (f/fail "DNA sequence, must contain only A, T, C, G, R and N."))))
+
 (defn get-query-type
   "Returns the type of query."
   [_ _ req]
@@ -168,7 +170,13 @@
 (defmethod parse-genomic-regions :text
   [gene-resolver organism req]
   (f/if-let-ok? [query-text (parse-req-string :query-text req)]
-    (parse-raw-text query-text (partial parse-line gene-resolver organism))))
+    (f/if-let-ok? [line-result (parse-raw-text query-text #(parse-line gene-resolver organism %1 %2))]
+      line-result
+      (f/if-let-ok? [seq-result (parse-rna-sequence gene-resolver organism query-text)]
+         seq-result
+         (f/fail (str (f/message line-result)
+                      "\n\nIf DNA Sequence rather than line-based coordinates:\n"
+                      (f/message seq-result)))))))
 
 (defmethod parse-genomic-regions :text-file
   [gene-resolver organism req]
@@ -190,8 +198,9 @@
   (f/fail "Unknown file type."))
 
 (defmethod parse-genomic-regions :fasta-file
-  [_ _ _]
-  (f/fail "Unsupported file type .fasta"))
+  [_ _ req]
+  (let [text (slurp (get-in req [:params :query-file-upload :tempfile]))]
+    (f/fail "Unsupported file type .fasta")))
 
 (defn failure-vector-into-map
   "Converts a vector of key-value pairs into a map, shortcircuting
