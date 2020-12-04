@@ -16,28 +16,20 @@
   [file]
   (re-find #"\.[^\./\\]*$" file))
 
-(defn lazy-lines-gzip
-  [gzip-file]
-  (->> (java.io.FileInputStream. gzip-file)
-       (java.util.zip.GZIPInputStream.)
-       (java.io.InputStreamReader.)
-       (java.io.BufferedReader.)
-       (line-seq)))
-
-(defn lazy-lines-normal
-  [file]
-  (->> (java.io.FileInputStream. file)
-       (java.io.InputStreamReader.)
-       (java.io.BufferedReader.)
-       (line-seq)))
+(defn open-fasta-stream
+  [fasta-file]
+  (let [gzip? (= (file-extension fasta-file) ".gz")]
+    (cond->> (java.io.FileInputStream. fasta-file)
+             gzip? (java.util.zip.GZIPInputStream.)
+             true (java.io.InputStreamReader.)
+             true (java.io.BufferedReader.))))
 
 (defn- load-genome-structure-raw
   "Parses the genome out of a FASTA file into a vector of
   [chromosome-name chromosome-length]."
   [fasta-file]
-  (let [lazy-line-seq (if (= (file-extension fasta-file) ".gz")
-                          lazy-lines-gzip lazy-lines-normal)]
-    (->> (lazy-line-seq fasta-file)
+  (with-open [rdr (open-fasta-stream fasta-file)]
+    (->> (line-seq rdr)
          (reduce (fn [structure row]
                    (if (= (nth row 0) \>)
                      (cons [(subs (first (clojure.string/split row #" ")) 1) 0]
@@ -47,21 +39,25 @@
                  '())
          (reverse))))
 
-
 (defn- load-genome-sequence
+  "Loads a FASTA file (.fna) into an array of strings, each of length at
+   most 1 billion. The file can be compressed or uncompressed."
   [fasta-file]
-  (let [lazy-line-seq (if (= (file-extension fasta-file) ".gz")
-                        lazy-lines-gzip
-                        lazy-lines-normal)
-        result (java.lang.StringBuilder.)]
-    (doseq [line (lazy-line-seq fasta-file)]
-      (when (not= (first line) \>)
-        (.append result (clojure.string/upper-case line))))))
+  (with-open [rdr (open-fasta-stream fasta-file)]
+    (loop [tmp-result (java.lang.StringBuilder.) result []]
+      (if-let [line (.readLine rdr)]
+        (do
+          (when (not= (first line) \>)
+            (.append tmp-result (clojure.string/upper-case line)))
+          (if (> (.length tmp-result) 1000000000) ;; Java arrays are maximum 2^31 long
+            (recur (java.lang.StringBuilder.) (conj result (.toString tmp-result)))
+            (recur tmp-result result))) 
+        (conj result (.toString tmp-result))))))
 
 (defn- load-genome
   [organism-fasta]
-  (timbre/info "Loading genome sequence: %s" organism-fasta)
-  {:sequence (load-genome-sequence organism-fasta) 
+  (timbre/info "Loading genome sequence: " organism-fasta)
+  {:sequences (load-genome-sequence organism-fasta) 
    :structure (-> (load-genome-structure-raw organism-fasta)
                   (genome-structure/get-genome-structure))})
 
@@ -168,15 +164,20 @@
        (clojure.string/join)))
 
 (defn- search-genome
-  [{:keys [structure sequence]} search-sequence]
-  (let [forward-pos (-> (RabinKarp. search-sequence)
-                        (.search sequence))]
-    (if-not (= forward-pos (count sequence))
-      (genome-structure/to-genomic-coordinates structure forward-pos)
-      (let [backward-pos (-> (RabinKarp. (reverse-complement search-sequence))
-                             (.search sequence))]
-        (if-not (= backward-pos (count sequence))
-          (genome-structure/to-genomic-coordinates structure (- backward-pos)))))))
+  ([{:keys [structure sequences]} search-sequence]
+   (->> sequences
+        (map #(search-genome structure % search-sequence))
+        (filter some?)
+        (first)))
+  ([structure sequence search-sequence]
+   (let [forward-pos (-> (RabinKarp. search-sequence)
+                         (.search sequence))]
+     (if-not (= forward-pos (count sequence))
+       (genome-structure/to-genomic-coordinates structure forward-pos)
+       (let [backward-pos (-> (RabinKarp. (reverse-complement search-sequence))
+                              (.search sequence))]
+         (if-not (= backward-pos (count sequence))
+           (genome-structure/to-genomic-coordinates structure (- backward-pos))))))))
 
 (defn resolve-sequence [gene-resolver organism sequence]
   (if-let [gs (get (:genome-structures gene-resolver) organism)]
