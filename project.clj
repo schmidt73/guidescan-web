@@ -22,7 +22,7 @@
                  [ring "1.8.1"]]
   :profiles {:uberjar {:aot :all}
              :dev {:resource-paths ["test/resources"]
-                   :source-paths ["src" "dev" "test"]
+                   :source-paths ["src/clojure" "dev" "test"]
                    :java-source-paths ["src/java"]
                    :javac-options ["-target" "1.8" "-source" "1.8"]
                    :repl-options {:init-ns reload}
@@ -30,6 +30,7 @@
              :prod {:main guidescan-web.core
                     :jar-name "guidescan.jar-THIN"
                     :uberjar-name "guidescan.jar"
+                    :source-paths ["src/clojure"]
                     :java-source-paths ["src/java"]
                     :javac-options ["-target" "1.8" "-source" "1.8"]}
              ;;;; Scripts for various maintenance tasks

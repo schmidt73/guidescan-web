@@ -12,12 +12,32 @@
             [failjure.core :as f]
             [com.stuartsierra.component :as component]))
 
+(defn- file-extension
+  [file]
+  (re-find #"\.[^\./\\]*$" file))
+
+(defn lazy-lines-gzip
+  [gzip-file]
+  (->> (java.io.FileInputStream. gzip-file)
+       (java.util.zip.GZIPInputStream.)
+       (java.io.InputStreamReader.)
+       (java.io.BufferedReader.)
+       (line-seq)))
+
+(defn lazy-lines-normal
+  [file]
+  (->> (java.io.FileInputStream. file)
+       (java.io.InputStreamReader.)
+       (java.io.BufferedReader.)
+       (line-seq)))
+
 (defn- load-genome-structure-raw
   "Parses the genome out of a FASTA file into a vector of
   [chromosome-name chromosome-length]."
   [fasta-file]
-  (with-open [rdr (clojure.java.io/reader fasta-file)]
-    (->> (line-seq rdr)
+  (let [lazy-line-seq (if (= (file-extension fasta-file) ".gz")
+                          lazy-lines-gzip lazy-lines-normal)]
+    (->> (lazy-line-seq fasta-file)
          (reduce (fn [structure row]
                    (if (= (nth row 0) \>)
                      (cons [(subs (first (clojure.string/split row #" ")) 1) 0]
@@ -27,15 +47,20 @@
                  '())
          (reverse))))
 
+
 (defn- load-genome-sequence
   [fasta-file]
-  (with-open [rdr (clojure.java.io/reader fasta-file)]
-    (->> (line-seq rdr)
-         (mapcat #(if (= \> (first %)) "" (clojure.string/upper-case %)))
-         (clojure.string/join))))
+  (let [lazy-line-seq (if (= (file-extension fasta-file) ".gz")
+                        lazy-lines-gzip
+                        lazy-lines-normal)
+        result (java.lang.StringBuilder.)]
+    (doseq [line (lazy-line-seq fasta-file)]
+      (when (not= (first line) \>)
+        (.append result (clojure.string/upper-case line))))))
 
 (defn- load-genome
   [organism-fasta]
+  (timbre/info "Loading genome sequence: %s" organism-fasta)
   {:sequence (load-genome-sequence organism-fasta) 
    :structure (-> (load-genome-structure-raw organism-fasta)
                   (genome-structure/get-genome-structure))})
