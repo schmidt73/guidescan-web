@@ -38,9 +38,7 @@
 (deftest successful-query-processing
   (testing "Testing that a query is successfully processed."
     (mock/with-component-or-system system (mock/test-system-no-www)
-      (let [[[_ processed-grnas]] (process/process-query (:bam-db system)
-                                                         (:gene-annotations system)
-                                                         (:gene-resolver system)
+      (let [[[_ processed-grnas]] (process/process-query system 
                                                          test-params-good)]
         (is (and
              (= 2 (count processed-grnas))
@@ -52,26 +50,20 @@
 (deftest no-organism-query-processing
   (testing "Testing that a query is successfully processed."
     (mock/with-component-or-system system (mock/test-system-no-www)
-      (let [result (process/process-query (:bam-db system)
-                                          (:gene-annotations system)
-                                          (:gene-resolver system)
+      (let [result (process/process-query system
                                           test-params-bad-no-organism)]
         (is (= "Unsupported organism-enzyme pair: hg38-cas9" (f/message result)))))))
 
 (deftest no-enzyme-query-processing
   (testing "Testing that a query is successfully processed."
     (mock/with-component-or-system system (mock/test-system-no-www)
-      (let [result (process/process-query (:bam-db system)
-                                          (:gene-annotations system)
-                                          (:gene-resolver system)
+      (let [result (process/process-query system
                                           test-params-bad-no-enzyme)]
         (is (= "Unsupported organism-enzyme pair: ce11-cas10" (f/message result)))))))
 
 (deftest null-query-processing
   (testing "Testing that a query is successfully processed."
     (mock/with-component-or-system system (mock/test-system-no-www)
-      (let [result (process/process-query (:bam-db system)
-                                          (:gene-annotations system)
-                                          (:gene-resolver system)
+      (let [result (process/process-query system
                                           {})]
         (is (f/failed? result))))))

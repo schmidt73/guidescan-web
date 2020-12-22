@@ -40,7 +40,8 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/ok?
-        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
+        (query-parsing/parse-genomic-regions system
+                                             "ce11"
                                              good-text-query))))))
 
 (deftest failing-text-query
@@ -48,7 +49,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/failed?
-        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
+        (query-parsing/parse-genomic-regions system "ce11"
                                              bad-text-query))))))
 
 (deftest successful-text-file-query
@@ -56,7 +57,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/ok?
-        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
+        (query-parsing/parse-genomic-regions system "ce11"
                                              good-text-file-query))))))
 
 (deftest failing-text-file-query
@@ -64,7 +65,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/failed?
-        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
+        (query-parsing/parse-genomic-regions system "ce11"
                                              bad-text-file-query))))))
 
 (deftest successful-bed-file-query
@@ -72,7 +73,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/ok?
-        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
+        (query-parsing/parse-genomic-regions system "ce11"
                                              good-bed-file-query))))))
 
 (deftest failing-bed-file-query
@@ -80,7 +81,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/failed?
-        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
+        (query-parsing/parse-genomic-regions system "ce11"
                                              bad-bed-file-query))))))
 
 (deftest successful-gtf-file-query
@@ -88,7 +89,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/ok?
-        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
+        (query-parsing/parse-genomic-regions system "ce11"
                                              good-gtf-file-query))))))
 
 (deftest failing-gtf-file-query
@@ -96,7 +97,7 @@
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
        (f/failed?
-        (query-parsing/parse-genomic-regions (:gene-resolver system) "ce11"
+        (query-parsing/parse-genomic-regions system "ce11"
                                              bad-gtf-file-query))))))
 
 (def successful-full-req
@@ -135,7 +136,7 @@
   (testing "Testing request parsing for a full set of parameters"
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
-       (= (query-parsing/parse-request (:gene-resolver system) successful-full-req)
+       (= (query-parsing/parse-request system successful-full-req)
           {:genomic-regions [{:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}
                              {:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}]
            :enzyme "cas9",
@@ -148,7 +149,7 @@
   (testing "Testing request parsing for a invalid topn string"
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
-       (= (query-parsing/parse-request (:gene-resolver system)
+       (= (query-parsing/parse-request system
                                        successful-req-bad-topn)
           {:genomic-regions [{:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}
                              {:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}]
@@ -162,7 +163,7 @@
                 "string")
     (mock/with-component-or-system system (mock/test-system-no-www)
       (clojure.test/is
-       (= (query-parsing/parse-request (:gene-resolver system)
+       (= (query-parsing/parse-request system
                                        successful-req-bad-topn-flanking)
           {:genomic-regions [{:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}
                              {:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}]
@@ -176,6 +177,6 @@
      (clojure.test/is
       (.startsWith
        (f/message
-        (query-parsing/parse-request (:gene-resolver system)
+        (query-parsing/parse-request system
                                      failed-req-bad-query))
        (str "Failed to parse: \"chrIV:11a00-450-00\" on line 1\n"))))))

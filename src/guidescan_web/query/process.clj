@@ -89,7 +89,8 @@
   "Process the query, returning either a response vector containing the
   processed gRNAs for each {:region-name X :coords [chrY, start, end]} input or a failure
   object with an appropriate message."
-  [bam-db gene-annotations gene-resolver req]
+  [{:keys [bam-db gene-annotations gene-resolver sequence-resolver]}
+   req]
   (f/attempt-all
    [{:keys [genomic-regions
             enzyme
@@ -99,7 +100,7 @@
             cutting-efficiency-bounds
             specificity-bounds
             flanking]}
-    (parse-request gene-resolver req)
+    (parse-request {:gene-resolver gene-resolver :sequence-resolver sequence-resolver} req)
     converted-regions (convert-regions genomic-regions organism flanking)
     vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)
     filter-opts {:filter-annotated filter-annotated

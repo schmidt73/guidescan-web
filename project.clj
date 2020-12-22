@@ -12,6 +12,7 @@
                  [cheshire "5.10.0"]
                  [failjure "2.0.0"]
                  [selmer "1.12.28"]
+                 [clj-http "3.10.3"]
                  [com.taoensso/timbre "4.10.0"]
                  [org.clojure/tools.cli "1.0.194"]
                  [seancorfield/next.jdbc "1.1.610"]
