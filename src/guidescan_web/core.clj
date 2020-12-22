@@ -34,9 +34,11 @@
 (defn core-system [host port job-age config-file]
   (component/system-map
    :gene-resolver (component/using (resolver/gene-resolver) [:config])
+   :sequence-resolver (component/using (resolver/sequence-resolver) [:config :gene-resolver])
    :bam-db (component/using (db/create-bam-db) [:config])
    :web-server (component/using (web-server host port) [:config :job-queue])
-   :job-queue (component/using (jobs/create-job-queue job-age) [:bam-db :gene-annotations :gene-resolver])
+   :job-queue (component/using (jobs/create-job-queue job-age) [:bam-db :gene-annotations
+                                                                :gene-resolver :sequence-resolver])
    :gene-annotations (component/using (annotations/gene-annotations) [:config])
    :config (config/create-config config-file)))
 

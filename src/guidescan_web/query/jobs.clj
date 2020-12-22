@@ -6,7 +6,9 @@
             [taoensso.timbre :as timbre]
             [com.stuartsierra.component :as component]))
 
-(defrecord JobQueue [bam-db gene-annotations gene-resolver jobs max-age]
+(defrecord JobQueue [bam-db gene-annotations
+                     gene-resolver sequence-resolver
+                     jobs max-age]
   component/Lifecycle
   (start [this]
     (when (nil? jobs)
@@ -64,10 +66,11 @@
   (dosync
    (let [jobs (:jobs job-queue)
          job-id (:id-counter @jobs)
-         bam-db (:bam-db job-queue)
-         gene-resolver (:gene-resolver job-queue)
-         gene-annotations (:gene-annotations job-queue)
-         future-obj (future-call #(process-query bam-db gene-annotations gene-resolver req))]
+         process-args {:gene-annotations (:gene-annotations job-queue)
+                       :bam-db (:bam-db job-queue)
+                       :gene-resolver (:gene-resolver job-queue)
+                       :sequence-resolver (:sequence-resolver job-queue)}
+         future-obj (future-call #(process-query process-args req))]
       (ref-set jobs
         (assoc @jobs
                :id-counter (inc job-id)

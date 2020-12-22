@@ -2,10 +2,12 @@
   "Defines a component that resolves various types of genomic names, for
   example protein names such as TP53 or sequences found in the
   organism of interest."
-  (:import (com.mchange.v2.c3p0 ComboPooledDataSource)
-           (guidescan.algo RabinKarp))
-  (:require [taoensso.timbre :as timbre]
+  (:import (com.mchange.v2.c3p0 ComboPooledDataSource))
+  (:require [guidescan-web.utils :refer :all]
+            [taoensso.timbre :as timbre]
             [next.jdbc :as jdbc]
+            [cheshire.core :as cheshire]
+            [clj-http.client :as http]
             [honeysql.core :as sql]
             [guidescan-web.genomics.structure :as genome-structure]
             [honeysql.helpers :as h]
@@ -76,16 +78,16 @@
             [:= :genes/chromosome :chromosomes/accession]
             [:= organism :chromosomes/organism]]))) 
 
-(defn- create-chromosome-name-query [organism accession]
+(defn- create-chromosome-accession-query [organism accession]
   (sql/format
    (sql/build
-    :select [:chromosomes/name]
+    :select :*
     :from [:chromosomes]
     :where [:and
             [:= accession :chromosomes/accession]
-            [:= organism  :chromosomes/organism]]))) 
+            [:= organism :chromosomes/organism]]))) 
 
-(defrecord GeneResolver [db-pool genome-structures config]
+(defrecord GeneResolver [db-pool config]
   component/Lifecycle
   (start [this]
     (let [gr-map (atom this)]
@@ -112,51 +114,80 @@
   (map->GeneResolver {}))
 
 (defn resolve-gene-symbol [gene-resolver organism gene-symbol]
-  (with-open [conn (.getConnection (:db-pool gene-resolver))]
-    (let [genes (jdbc/execute! conn (create-gene-symbol-query organism gene-symbol))]
-      (if-not (empty? genes)
-        (first genes)))))
+  (try
+    (with-open [conn (.getConnection (:db-pool gene-resolver))]
+      (let [genes (jdbc/execute! conn (create-gene-symbol-query organism gene-symbol))]
+        (if-not (empty? genes)
+          (first genes))))
+    (catch java.sql.SQLException e
+      (timbre/error "Cannot acquire gene-resolver DB connection.")
+      nil)))
 
 (defn resolve-entrez-id [gene-resolver organism entrez-id]
-  (with-open [conn (.getConnection (:db-pool gene-resolver))]
-    (let [genes (jdbc/execute! conn (create-entrez-id-query organism entrez-id))]
-      (if-not (empty? genes)
-        (first genes)))))
+  (try
+    (with-open [conn (.getConnection (:db-pool gene-resolver))]
+      (let [genes (jdbc/execute! conn (create-entrez-id-query organism entrez-id))]
+        (if-not (empty? genes)
+          (first genes))))
+    (catch java.sql.SQLException e
+      (timbre/error "Cannot acquire gene-resolver DB connection.")
+      nil)))
 
-(defn resolve-chromosome-accession
-  [gene-resolver organism accession]
-  (with-open [conn (.getConnection (:db-pool gene-resolver))]
-    (let [chrs (jdbc/execute! conn (create-chromosome-name-query organism accession))]
-      (if-not (empty? chrs)
-        (first chrs)))))
+(defn resolve-chromosome-accession [gene-resolver organism accession]
+  (try
+    (with-open [conn (.getConnection (:db-pool gene-resolver))]
+      (let [genes (jdbc/execute! conn (create-chromosome-accession-query organism accession))]
+        (if-not (empty? genes)
+          (first genes))))
+    (catch java.sql.SQLException e
+      (timbre/error "Cannot acquire gene-resolver DB connection.")
+      nil)))
 
-(defn- reverse-complement
-  [seq]
-  (->> seq
-       (map #(case %
-               \A \T
-               \T \A
-               \G \C
-               \C \G
-               %))
-       (reverse)
-       (clojure.string/join)))
+(def ^:private random-dna-seq
+  (clojure.string/join (map (fn [_] (rand-nth "ATCG")) (range 500)))) 
 
-(defn- search-genome
-  [{:keys [structure sequence]} search-sequence]
-  (let [forward-pos (-> (RabinKarp. search-sequence)
-                        (.search sequence))]
-    (if-not (= forward-pos (count sequence))
-      (genome-structure/to-genomic-coordinates structure forward-pos)
-      (let [backward-pos (-> (RabinKarp. (reverse-complement search-sequence))
-                             (.search sequence))]
-        (if-not (= backward-pos (count sequence))
-          (genome-structure/to-genomic-coordinates structure (- backward-pos)))))))
+(defn- resolve-sequence-raw
+  [url sequence]
+  (try
+    (let [endpoint (format "%s/search" url)
+          result (http/get endpoint {:accept :json :query-params {"sequence" sequence}})]
+      (if (= 200 (:status result))
+        (cheshire/decode (:body result))))
+    (catch java.net.ConnectException e
+        (timbre/error (format "Could not access :resolve-sequence url %s"
+                              url)))))
 
-(defn resolve-sequence [gene-resolver organism sequence]
-  (if-let [gs (get (:genome-structures gene-resolver) organism)]
-    (if-let [coords (search-genome gs sequence)]
-      (if-let [chr (resolve-chromosome-accession gene-resolver organism (:chromosome coords))]
-        (assoc coords :chromosome (:chromosomes/name chr))))))
+(defrecord SequenceResolver [sequence-resolvers gene-resolver config]
+  component/Lifecycle
+  (start [this]
+    (if-let [conns (get-in config [:config :sequence-resolvers])]
+      (do
+        (timbre/info "Checking sequence-resolvers")
+        (for [organism (keys conns)]
+          (if-not (resolve-sequence-raw (get-in conns [organism :url])
+                                        random-dna-seq)
+            (timbre/warn
+             (format
+              "organism %s's search endpoint does not appear to be available"
+              organism))))
+        (timbre/info "Successfully checked sequence-resolvers")
+        (assoc this :sequence-resolvers conns))
+      (do
+        (timbre/warn (str ":sequence-resolvers key not found in config, " 
+                          "search by sequence disabled."))
+        this)))
 
+  (stop [this]
+    (assoc this :sequence-resolvers nil)))
 
+(defn sequence-resolver []
+  (map->SequenceResolver {}))
+
+(defn resolve-sequence
+  [resolver organism sequence]
+  (if-let* [gene-resolver (:gene-resolver resolver)
+            url (get-in resolver [:sequence-resolvers organism :url])
+            result (resolve-sequence-raw url sequence)
+            {accession "chr" d "distance" p "pos" s "strand"} (first (sort-by #(get % "distance") result))
+            {chr :chromosomes/name} (resolve-chromosome-accession gene-resolver organism accession)]
+    {:chr chr :distance d :pos p :strand s}))

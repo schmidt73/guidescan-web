@@ -77,7 +77,7 @@
 (defn- parse-line
   "Parses one line of a text file, returning a parse tree indicating
   success or failure along with an error message."
-  [gene-resolver organism line-number line]
+  [{:keys [gene-resolver]} organism line-number line]
   (or (parse-chromosome line)
       (parse-gene-symbol gene-resolver organism line)
       (parse-entrez-id gene-resolver organism line)
@@ -119,26 +119,25 @@
       (f/fail (clojure.string/join "\n" (map f/message failed-lines)))
       parsed-lines)))
 
-(defn- parse-rna-sequence
-  "Parses the raw-text as an RNA sequence returning a parse tree
-  indicating the region on success, or a failure message otherwise."
-  [gene-resolver organism text]
-  (let [rna-seq (-> (clojure.string/upper-case text)
-                    (clojure.string/replace #"[\n\r]" "")
-                    (clojure.string/trim))
-        rna-len (count rna-seq)
-        region-name (if (> rna-len 30)
-                      (str (subs rna-seq 0 10)
-                           "..."
-                           (subs rna-seq (- rna-len 11) (- rna-len 1)))
-                      rna-seq)]
-    (if (re-matches #"^[ATCGRN]+$" rna-seq)
-      (if-let [coords (resolver/resolve-sequence gene-resolver organism rna-seq)]
-        [{:region-name region-name
-          :coords
-          [(str "chr" (:chromosome coords)) (:position coords) (+ (:position coords) rna-len)]}]
-        (f/fail "DNA sequence not found in %s." organism))
-      (f/fail "DNA sequence, must contain only A, T, C, G, R and N."))))
+(defn- parse-dna-sequence
+  "Parses the text as a DNA sequence, resolving its coordinates using
+  the sequence-resolver component."
+  [{:keys [sequence-resolver]} organism text]
+  (let [dna (-> text
+                (clojure.string/replace #"\R" "")
+                (clojure.string/upper-case))
+        pretty-dna (if (> (count dna) 40)
+                     (format "%s...%s" (subs dna 0 20) (subs dna (- (count dna) 20)))
+                     dna)]
+    (if-let [coords (resolver/resolve-sequence sequence-resolver organism dna)]
+      [{:region-name pretty-dna
+        :coords
+        [(str "chr" (:chr coords)) (:pos coords) (+ (:pos coords) (count dna))]}]
+      (f/fail (format "Failed to find sequence in %s for: %s" organism pretty-dna)))))
+
+(defn dna-seq?
+  [text]
+  (re-matches #"^[atcgnruATCGNRU\\R]+$" text))
 
 (defn get-query-type
   "Returns the type of query."
@@ -168,20 +167,16 @@
   get-query-type)
 
 (defmethod parse-genomic-regions :text
-  [gene-resolver organism req]
+  [resolver organism req]
   (f/if-let-ok? [query-text (parse-req-string :query-text req)]
-    (f/if-let-ok? [line-result (parse-raw-text query-text #(parse-line gene-resolver organism %1 %2))]
-      line-result
-      (f/if-let-ok? [seq-result (parse-rna-sequence gene-resolver organism query-text)]
-         seq-result
-         (f/fail (str (f/message line-result)
-                      "\n\nIf DNA Sequence rather than line-based coordinates:\n"
-                      (f/message seq-result)))))))
+    (if (dna-seq? query-text)
+        (parse-dna-sequence resolver organism query-text)
+        (parse-raw-text query-text (partial parse-line resolver organism)))))
 
 (defmethod parse-genomic-regions :text-file
-  [gene-resolver organism req]
+  [resolver organism req]
   (let [text (slurp (get-in req [:params :query-file-upload :tempfile]))]
-    (parse-raw-text text (partial parse-line gene-resolver organism))))
+    (parse-raw-text text (partial parse-line resolver organism))))
 
 (defmethod parse-genomic-regions :bed-file
   [_ _ req]
@@ -228,7 +223,7 @@
       :filter-annotated BOOL          OPTIONAL
       :topn INT                       OPTIONAL
       :flanking INT                   OPTIONAL}"
-  [gene-resolver req]
+  [resolvers req]
   (f/attempt-all
    [parsed-request
     (failure-vector-into-map
@@ -239,5 +234,5 @@
       [:flanking (parse-req-int :flanking req) :optional]
       [:cutting-efficiency-bounds (parse-bounds :ce-bounds-l :ce-bounds-u req) :optional]
       [:specificity-bounds (parse-bounds :s-bounds-l :s-bounds-u req) :optional]])
-    genomic-regions (parse-genomic-regions gene-resolver (:organism parsed-request) req)]
+    genomic-regions (parse-genomic-regions resolvers (:organism parsed-request) req)]
    (assoc parsed-request :genomic-regions genomic-regions)))

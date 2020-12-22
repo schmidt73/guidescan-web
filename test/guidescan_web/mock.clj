@@ -19,6 +19,7 @@
 
 (defn test-system-no-www []
   (component/system-map
+   :sequence-resolver (component/using (resolver/gene-resolver) [:config :gene-resolver])
    :gene-resolver (component/using (resolver/gene-resolver) [:config])
    :bam-db (component/using (db/create-bam-db) [:config])
    :config (test-config)
