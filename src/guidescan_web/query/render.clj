@@ -9,7 +9,7 @@
 (def csv-header
   ["Region-name" "gRNA-ID" "gRNA-Seq" "Target-Seq" "PAM"
    "Number of off-targets" "Off-target summary" "Cutting efficiency"
-   "Specificity" "Coordinates" "Strand"])
+   "Specificity" "Rank" "Coordinates" "Strand"])
 
 (defn revcom
   [sequence]
@@ -38,7 +38,7 @@
      (format "%s.%d" (:region-name genomic-region) idx)
      grna-seq target-seq pam num-ots
      ots cutting-efficiency specificity
-     coords direction]))
+     (inc idx) coords direction]))
 
 (defn processed-query-to-csv-vector
   [[genomic-region grnas]]
