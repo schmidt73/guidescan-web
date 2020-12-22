@@ -9,7 +9,7 @@
   {:params {:query-text "chrIV:911770-916325\nchrIV:911100-911200" :organism "ce11"}})
 
 (def bad-text-query
-  {:params {:query-text "chIV:911770-916325\nchrIV:911100-911200" :organism "ce11"}})
+  {:params {:query-text "chIV:911770-916325\nchIV:911100-911200" :organism "ce11"}})
 
 (def good-text-file-query
   {:params {:query-file-upload {:filename "query_good_test.txt"
@@ -125,7 +125,7 @@
             :flanking "4aa5"}})
 
 (def failed-req-bad-query
-  {:params {:query-text "chrIV:11a00-450-00\nchrIV:1100-45000"
+  {:params {:query-text "chrIV:11a00-450-00\nchrIV:110045000"
             :enzyme "cas9"
             :organism "ce11"
             :filter-annotated "false"

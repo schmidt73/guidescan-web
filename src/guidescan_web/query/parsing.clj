@@ -108,16 +108,22 @@
 
 (defn- parse-raw-text
   "Parses the raw text line by line using the passed in
-  line-parser. Returns the first error if any exists."
-  [text line-parser]
-  (let* [parsed-lines
-         (->> (clojure.string/split-lines text)
-              (map-indexed line-parser)
-              (remove #(= :skip %))) 
-         failed-lines (filter f/failed? parsed-lines)]
-    (if (not-empty failed-lines)
-      (f/fail (clojure.string/join "\n" (map f/message failed-lines)))
-      parsed-lines)))
+  line-parser. Returns only the successfully parsed lines if stop-at-error?
+  is false."
+  ([text line-parser stop-at-error?]
+   (let* [parsed-lines
+          (->> (clojure.string/split-lines text)
+               (map-indexed line-parser)
+               (remove #(= :skip %))) 
+          failed-lines (filter f/failed? parsed-lines)
+          successful-lines (filter f/ok? parsed-lines)]
+     (if (and stop-at-error? (not-empty failed-lines))
+         (f/fail (clojure.string/join "\n" (map f/message failed-lines)))
+         (if (empty? successful-lines)
+           (f/fail (clojure.string/join "\n" (map f/message failed-lines)))
+           successful-lines))))
+  ([text line-parser]
+   (parse-raw-text text line-parser true)))
 
 (defn- parse-dna-sequence
   "Parses the text as a DNA sequence, resolving its coordinates using
@@ -171,12 +177,12 @@
   (f/if-let-ok? [query-text (parse-req-string :query-text req)]
     (if (dna-seq? query-text)
         (parse-dna-sequence resolver organism query-text)
-        (parse-raw-text query-text (partial parse-line resolver organism)))))
+        (parse-raw-text query-text (partial parse-line resolver organism) false))))
 
 (defmethod parse-genomic-regions :text-file
   [resolver organism req]
   (let [text (slurp (get-in req [:params :query-file-upload :tempfile]))]
-    (parse-raw-text text (partial parse-line resolver organism))))
+    (parse-raw-text text (partial parse-line resolver organism) false)))
 
 (defmethod parse-genomic-regions :bed-file
   [_ _ req]
