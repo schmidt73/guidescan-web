@@ -78,6 +78,16 @@
             [:= :genes/chromosome :chromosomes/accession]
             [:= organism :chromosomes/organism]]))) 
 
+(defn- create-gene-symbol-suggestions-query [organism gene-symbol-prefix]
+  (sql/format
+   (sql/build
+    :select [:genes/gene_symbol]
+    :from [:genes :chromosomes]
+    :where [:and
+            [:like :genes/gene_symbol (str gene-symbol-prefix "%")]
+            [:= :genes/chromosome :chromosomes/accession]
+            [:= organism :chromosomes/organism]])))
+
 (defn- create-chromosome-accession-query [organism accession]
   (sql/format
    (sql/build
@@ -143,6 +153,17 @@
       (timbre/error "Cannot acquire gene-resolver DB connection.")
       nil)))
 
+(defn resolve-gene-symbol-suggestion [gene-resolver organism gene-symbol-suggestion]
+  (try
+    (with-open [conn (.getConnection (:db-pool gene-resolver))]
+      (let [genes (jdbc/execute! conn (create-gene-symbol-suggestions-query
+                                       organism
+                                       gene-symbol-suggestion))]
+        (map :genes/gene_symbol genes)))
+    (catch java.sql.SQLException e
+      (timbre/error "Cannot acquire gene-resolver DB connection.")
+      nil)))
+
 (def ^:private random-dna-seq
   (clojure.string/join (map (fn [_] (rand-nth "ATCG")) (range 500)))) 
 
@@ -191,3 +212,5 @@
             {accession "chr" d "distance" p "pos" s "strand"} (first (sort-by #(get % "distance") result))
             {chr :chromosomes/name} (resolve-chromosome-accession gene-resolver organism accession)]
     {:chr chr :distance d :pos p :strand s}))
+
+

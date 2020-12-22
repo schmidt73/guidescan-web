@@ -14,13 +14,13 @@
    [guidescan-web.genomics.resolver :as resolver]
    [guidescan-web.routes :as routes]))
 
-(defrecord WebServer [http-server config job-queue host port]
+(defrecord WebServer [http-server config job-queue gene-resolver host port]
   component/Lifecycle
   (start [this]
     (timbre/info "Starting webserver component.")
     (when (nil? http-server)
       (assoc this :http-server
-             (server/run-server (routes/handler config job-queue)
+             (server/run-server (routes/handler config job-queue gene-resolver)
                                 {:host host :port port}))))
   (stop [this]
     (when (not (nil? http-server))
@@ -36,7 +36,7 @@
    :gene-resolver (component/using (resolver/gene-resolver) [:config])
    :sequence-resolver (component/using (resolver/sequence-resolver) [:config :gene-resolver])
    :bam-db (component/using (db/create-bam-db) [:config])
-   :web-server (component/using (web-server host port) [:config :job-queue])
+   :web-server (component/using (web-server host port) [:config :job-queue :gene-resolver])
    :job-queue (component/using (jobs/create-job-queue job-age) [:bam-db :gene-annotations
                                                                 :gene-resolver :sequence-resolver])
    :gene-annotations (component/using (annotations/gene-annotations) [:config])

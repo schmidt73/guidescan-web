@@ -12,6 +12,7 @@
    [cheshire.core :as cheshire]
    [ring.util.response :refer [content-type response not-found]]
    [taoensso.timbre :as timbre]
+   [guidescan-web.genomics.resolver :as resolver]
    [guidescan-web.query.render :as render]
    [guidescan-web.query.jobs :as jobs]))
 
@@ -72,6 +73,22 @@
           (render/get-content-type format))))
     (not-found "Job result not found.")))
 
+(defn autocomplete-handler
+  "Exposes a REST handler that autocomplets gene symbols.
+
+  REST API:
+
+  Endpoint: GET /autocomplete/symbol/
+  HTTP Response Code: 200 OK
+  JSON Response:
+  [matching-gene-symbols]"
+  [gene-resolver req organism symbol]
+  (timbre/info "Gene symbol resolution request from " (:remote-addr req) ".")
+  (let [suggestions (resolver/resolve-gene-symbol-suggestion gene-resolver organism symbol)]
+    (content-type 
+     (response (cheshire/encode suggestions))
+     (render/get-content-type :json))))
+
 (defn supported-handler
   "Exposes a REST handler that returns the supported organisms and
   enzymes by this endpoint.
@@ -92,7 +109,7 @@
      (render/get-content-type :json))))
 
 (defn create-routes
-  [config job-queue]
+  [config job-queue gene-resolver]
   (routes
    (ANY "/query" req (query-handler job-queue req))
    (GET "/job/status/:id{[0-9]+}" [id :as req]
@@ -101,6 +118,8 @@
         (job-result-handler req job-queue (keyword format) (Integer/parseInt id)))
    (GET "/info/supported" req
         (supported-handler req config))
+   (GET "/info/autocomplete" [organism symbol :as req]
+        (autocomplete-handler gene-resolver req organism symbol))
    (route/not-found "404 page not found.")))
 
 (def www-defaults
@@ -125,8 +144,8 @@
           (assoc-in [:headers "Access-Control-Allow-Headers"] "x-requested-with")
           (assoc-in [:headers "Access-Control-Allow-Methods"] "*")))))
 
-(defn handler [config job-queue]
-  (-> (create-routes config job-queue)
+(defn handler [config job-queue gene-resolver]
+  (-> (create-routes config job-queue gene-resolver)
       (wrap-cors)
       (wrap-defaults www-defaults)
       (wrap-dir-index)))
