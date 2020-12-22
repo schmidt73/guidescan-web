@@ -7,26 +7,42 @@
             [clojure.data.csv :as csv]))
 
 (def csv-header
-  ["Coordinates" "Sequence" "Number of off-targets"
-   "Off-target summary" "Cutting efficiency" "Specificity"])
+  ["Region-name" "gRNA-ID" "gRNA-Seq" "Target-Seq" "PAM"
+   "Number of off-targets" "Off-target summary" "Cutting efficiency"
+   "Specificity" "Coordinates" "Strand"])
 
-(defn grna-to-csv-vector [chr grna]
+(defn revcom
+  [sequence]
+  (-> (map {\A \T \T \A \G \C \C \G \N \N} sequence)
+      (reverse)
+      (clojure.string/join)))
+
+(defn grna-to-csv-vector [genomic-region grna idx]
   (let [direction (if (= (:direction grna) :positive) "+" "-")
-        coords (str chr ":" (:start grna) "-" (:end grna) ":"
-                    direction)
+        coords (str (first (:coords genomic-region)) ":" (:start grna) "-" (:end grna))
+        pam (if (= direction "+")
+              (subs (:sequence grna) 20 23)
+              (revcom (subs (:sequence grna) 0 3)))
+        grna-seq  (if (= direction "+")
+                    (subs (:sequence grna) 0 20)
+                    (revcom (subs (:sequence grna) 3 23)))
+        target-seq  (if (= direction "+")
+                      (subs (:sequence grna) 0 20)
+                      (subs (:sequence grna) 3 23))
         num-ots (grna/num-off-targets grna)
         ots (str "2:" (grna/num-off-targets grna 2) " | "
                  "3:" (grna/num-off-targets grna 3))
         cutting-efficiency (get grna :cutting-efficiency "N/A")
         specificity (get grna :specificity "N/A")] 
-    [coords (:sequence grna) num-ots ots cutting-efficiency specificity]))
+    [(:region-name genomic-region)
+     (format "%s.%d" (:region-name genomic-region) idx)
+     grna-seq target-seq pam num-ots
+     ots cutting-efficiency specificity
+     coords direction]))
 
 (defn processed-query-to-csv-vector
   [[genomic-region grnas]]
-  (into
-   [[(:name genomic-region)]
-    csv-header]
-   (mapv #(grna-to-csv-vector (first (:coords genomic-region)) %) grnas)))
+  (map-indexed #(grna-to-csv-vector genomic-region %2 %1) grnas))
 
 (defn grna-to-bed-line
   [chr grna]
@@ -61,7 +77,7 @@
   (with-out-str
     (csv/write-csv
      *out*
-     (reduce into []
+     (reduce into [csv-header]
              (mapv processed-query-to-csv-vector
                    processed-query)))))
 
