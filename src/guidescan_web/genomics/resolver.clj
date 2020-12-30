@@ -106,15 +106,6 @@
           (timbre/info "Successfully initialized DB connection pool for gene name resolution.")
           (swap! gr-map #(assoc % :db-pool pool)))
         (timbre/warn "DB not specified, gene name resolution will not be supported."))
-      (if-let [organisms (:organism-sequences (:config config))]
-        (if-not (empty? organisms)
-          (let [genome-structures (load-genome-structures organisms)]
-            (timbre/info "Successfully loaded genome-structures for search by sequence.")
-            (swap! gr-map #(assoc % :genome-structures genome-structures)))
-          (timbre/warn (str "Organism sequences map empty, search by"
-                             " sequence will not be supported.")))
-        (timbre/warn (str "Organism sequences map not found, search by"
-                          " sequence will not be supported.")))
      @gr-map))
   (stop [this]
     (.close db-pool)
@@ -208,9 +199,11 @@
   [resolver organism sequence]
   (if-let* [gene-resolver (:gene-resolver resolver)
             url (get-in resolver [:sequence-resolvers organism :url])
-            result (resolve-sequence-raw url sequence)
-            {accession "chr" d "distance" p "pos" s "strand"} (first (sort-by #(get % "distance") result))
+            result (resolve-sequence-raw url sequence)]
+    (if (> (count result) 1)
+      (f/fail "Multiple perfect matches found. Cannot resolve sequence to unique coordinates.")
+      (let [{accession "chr" d "distance" p "pos" s "strand"} (first (sort-by #(get % "distance") result))
             {chr :chromosomes/name} (resolve-chromosome-accession gene-resolver organism accession)]
-    {:chr chr :distance d :pos p :strand s}))
-
+        {:chr chr :distance d :pos p :strand s}))
+    (f/fail "No match found for input sequence.")))
 

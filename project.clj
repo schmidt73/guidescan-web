@@ -24,15 +24,11 @@
   :profiles {:uberjar {:aot :all}
              :dev {:resource-paths ["test/resources"]
                    :source-paths ["src" "dev" "test"]
-                   :java-source-paths ["src/java"]
-                   :javac-options ["-target" "1.8" "-source" "1.8"]
                    :repl-options {:init-ns reload}
                    :dependencies [[org.clojure/tools.namespace "1.0.0"]]}
              :prod {:main guidescan-web.core
                     :jar-name "guidescan.jar-THIN"
                     :uberjar-name "guidescan.jar"
-                    :java-source-paths ["src/java"]
-                    :javac-options ["-target" "1.8" "-source" "1.8"]}
              ;;;; Scripts for various maintenance tasks
              :create-gene-db {:source-paths ^:replace ["scripts"]
                               :uberjar-name "create-gene-db.jar"

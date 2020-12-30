@@ -63,7 +63,14 @@
   
 (defmethod render-query-result :json
   [_ processed-query]
-  (cheshire/encode processed-query))
+  (cheshire/encode
+   (map (fn [[query grnas]]
+          [query
+           (map #(if (= (:direction %) :negative)
+                   (update % :sequence revcom)
+                   %)
+                grnas)])
+        processed-query)))
 
 (defmethod render-query-result :bed
   [_ processed-query]

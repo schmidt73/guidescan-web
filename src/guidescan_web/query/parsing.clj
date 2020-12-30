@@ -135,11 +135,12 @@
         pretty-dna (if (> (count dna) 40)
                      (format "%s...%s" (subs dna 0 20) (subs dna (- (count dna) 20)))
                      dna)]
-    (if-let [coords (resolver/resolve-sequence sequence-resolver organism dna)]
-      [{:region-name pretty-dna
-        :coords
-        [(str "chr" (:chr coords)) (:pos coords) (+ (:pos coords) (count dna))]}]
-      (f/fail (format "Failed to find sequence in %s for: %s" organism pretty-dna)))))
+    (if (> (count dna) 10)
+      (f/attempt-all [coords (resolver/resolve-sequence sequence-resolver organism dna)]
+        [{:region-name pretty-dna
+          :coords
+          [(str "chr" (:chr coords)) (:pos coords) (+ (:pos coords) (count dna))]}])
+      (f/fail "Input DNA sequence too short."))))
 
 (defn dna-seq?
   [text]
