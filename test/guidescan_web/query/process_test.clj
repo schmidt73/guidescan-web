@@ -38,8 +38,8 @@
 (deftest successful-query-processing
   (testing "Testing that a query is successfully processed."
     (mock/with-component-or-system system (mock/test-system-no-www)
-      (let [[[_ processed-grnas]] (process/process-query system 
-                                                         test-params-good)]
+      (let [{[[_ processed-grnas]] :result}
+            (process/process-query system test-params-good)]
         (is (and
              (= 2 (count processed-grnas))
              (= 2 (grna/num-off-targets (nth processed-grnas 0)))

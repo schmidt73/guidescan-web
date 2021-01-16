@@ -59,9 +59,9 @@
    (clojure.string/join "\n")))
 
 (defmulti render-query-result
-  (fn [format processed-query] format))
+  (fn [format processed-query] [format (:query-type processed-query)]))
   
-(defmethod render-query-result :json
+(defmethod render-query-result [:json :standard]
   [_ processed-query]
   (cheshire/encode
    (map (fn [[query grnas]]
@@ -72,14 +72,14 @@
                 grnas)])
         processed-query)))
 
-(defmethod render-query-result :bed
+(defmethod render-query-result [:bed :standard]
   [_ processed-query]
   (->> processed-query
    (map processed-query-to-bed-entry)
    (clojure.string/join "\n")
    (str "track name=\"guideRNAs\"\n")))
 
-(defmethod render-query-result :csv
+(defmethod render-query-result [:csv :standard]
   [_ processed-query]
   (with-out-str
     (csv/write-csv

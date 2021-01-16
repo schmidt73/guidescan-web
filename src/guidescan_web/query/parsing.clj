@@ -5,7 +5,13 @@
   It assumes the spec located here for BED files:
     - https://m.ensembl.org/info/website/upload/bed.html
   It assumes the spec located here for GFF/GTF files:
-    - https://uswest.ensembl.org/io/website/upload/gff.html"
+    - https://uswest.ensembl.org/io/website/upload/gff.html
+
+  There are multiple types of requests that are parsed by this
+  module:
+    1. Standard requests (genomic region requests)
+    2. Library creation requests
+    3. gRNA validation requests"
   (:require [failjure.core :as f]
             [guidescan-web.genomics.resolver :as resolver]))
 
@@ -218,9 +224,15 @@
     (reduce #(assoc %1 (first %2) (second %2)) {}
             (remove #(f/failed? (second %)) failure-vector))))
 
-(defn parse-request
-  "Parses the raw request object into a format suitable for processing
-  or returns a Failure object along with an error message.
+(defmulti parse-request
+  "Parses a standard raw request object into a format suitable for
+   processing or returns a Failure object along with an error message."
+  (fn [type resolvers req] type))
+
+(defmethod parse-request :standard
+  [_ resolvers req]
+  "A standard request is one that finds all gRNAs in a list of genomic
+  regions constrained by certain user defined options.
 
   On success, the returned map has the following structure:
      {:genomic-regions [{:region-name X1 :coords [chrX1 start-1 end-1]}
@@ -230,7 +242,6 @@
       :filter-annotated BOOL          OPTIONAL
       :topn INT                       OPTIONAL
       :flanking INT                   OPTIONAL}"
-  [resolvers req]
   (f/attempt-all
    [parsed-request
     (failure-vector-into-map
@@ -243,3 +254,15 @@
       [:specificity-bounds (parse-bounds :s-bounds-l :s-bounds-u req) :optional]])
     genomic-regions (parse-genomic-regions resolvers (:organism parsed-request) req)]
    (assoc parsed-request :genomic-regions genomic-regions)))
+
+(defmethod parse-request :grna
+  [_ resolvers req]
+  "A gRNA request is one that evaluates a set of gRNAs against the
+   Guidescan databases.
+
+   On success, the returned map has the following structure:
+     {:grnas [{:seq X1 :coords [chrX1 start-1 end-1]}
+              {:seq X2 :coords [chrX2 start-2 end-2]} ...]
+      :enzyme STRING
+      :organism STRING}"
+  nil)

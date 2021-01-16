@@ -85,10 +85,21 @@
     flanking       (apply concat)
     true           (map #(assoc % :organism organism))))
 
-(defn process-query
-  "Process the query, returning either a response vector containing the
-  processed gRNAs for each {:region-name X :coords [chrY, start, end]} input or a failure
-  object with an appropriate message."
+(defn- wrap-result
+  [query-type result]
+  {:query-type query-type
+   :result result})
+
+(defmulti process-query
+  "Process the query, returning a map of the form:
+
+     {:query-type t :result r}
+
+  On success or a failure object with an appropriate
+  message."
+  (fn [_ req] (get req :query-type :standard)))
+
+(defmethod process-query :standard
   [{:keys [bam-db gene-annotations gene-resolver sequence-resolver]}
    req]
   (f/attempt-all
@@ -100,7 +111,9 @@
             cutting-efficiency-bounds
             specificity-bounds
             flanking]}
-    (parse-request {:gene-resolver gene-resolver :sequence-resolver sequence-resolver} req)
+    (parse-request :standard
+                   {:gene-resolver gene-resolver :sequence-resolver sequence-resolver}
+                   req)
     converted-regions (convert-regions genomic-regions organism flanking)
     vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)
     filter-opts {:filter-annotated filter-annotated
@@ -111,4 +124,5 @@
      true (map #(filter-results filter-opts %2 %1) converted-regions)
      true (map #(sort-results "num-off-targets" %2 %1) converted-regions)
      (some? topn) (map #(keep-only-top-n topn %))
-     true (map vector converted-regions))))
+     true (map vector converted-regions)
+     true (wrap-result :standard))))

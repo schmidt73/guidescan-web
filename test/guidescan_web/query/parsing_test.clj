@@ -136,7 +136,7 @@
   (testing "Testing request parsing for a full set of parameters"
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
-       (= (query-parsing/parse-request system successful-full-req)
+       (= (query-parsing/parse-request :standard system successful-full-req)
           {:genomic-regions [{:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}
                              {:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}]
            :enzyme "cas9",
@@ -149,7 +149,7 @@
   (testing "Testing request parsing for a invalid topn string"
     (clojure.test/is
      (mock/with-component-or-system system (mock/test-system-no-www)
-       (= (query-parsing/parse-request system
+       (= (query-parsing/parse-request :standard system
                                        successful-req-bad-topn)
           {:genomic-regions [{:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}
                              {:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}]
@@ -163,7 +163,7 @@
                 "string")
     (mock/with-component-or-system system (mock/test-system-no-www)
       (clojure.test/is
-       (= (query-parsing/parse-request system
+       (= (query-parsing/parse-request :standard system
                                        successful-req-bad-topn-flanking)
           {:genomic-regions [{:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}
                              {:region-name "chrIV:1100-45000" :coords ["chrIV" 1100 45000]}]
@@ -177,6 +177,6 @@
      (clojure.test/is
       (.startsWith
        (f/message
-        (query-parsing/parse-request system
+        (query-parsing/parse-request :standard system
                                      failed-req-bad-query))
        (str "Failed to parse: \"chrIV:11a00-450-00\" on line 1\n"))))))
