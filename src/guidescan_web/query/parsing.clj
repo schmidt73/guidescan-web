@@ -131,6 +131,18 @@
   ([text line-parser]
    (parse-raw-text text line-parser true)))
 
+(defn- convert-coords
+  [seq {:keys [chr distance pos strand]}]
+  (let [[start end] (if (= strand "-")
+                      [(- pos (count seq)) pos]
+                      [pos (+ pos (count seq))])]
+    {:region-name seq
+     :coords [(str "chr" chr) start end]}))
+
+(defn- dna-seq?
+  [text]
+  (re-matches #"^[atcgnATCGN\\R]+$" text))
+
 (defn- parse-dna-sequence
   "Parses the text as a DNA sequence, resolving its coordinates using
   the sequence-resolver component."
@@ -143,14 +155,20 @@
                      dna)]
     (if (> (count dna) 10)
       (f/attempt-all [coords (resolver/resolve-sequence sequence-resolver organism dna)]
-        [{:region-name pretty-dna
-          :coords
-          [(str "chr" (:chr coords)) (:pos coords) (+ (:pos coords) (count dna))]}])
+        (convert-coords dna coords))
       (f/fail "Input DNA sequence too short."))))
 
-(defn dna-seq?
-  [text]
-  (re-matches #"^[atcgnruATCGNRU\\R]+$" text))
+(defn- parse-grnas
+  [sequence-resolver organism text]
+  (let [valid-grna? #(and (dna-seq? %)
+                         (< (count %) 30)
+                         (> (count %) 10))
+        grnas (->> (clojure.string/split-lines text)
+                   (map clojure.string/upper-case))]
+    (if (every? valid-grna? grnas)
+      (->> (map #(resolver/resolve-sequence sequence-resolver organism %) grnas)
+           (map #(if (f/ok? %2) (convert-coords %1 %2) {:error %2 :grna %1}) grnas))
+      (f/fail "Input gRNAs must be between 10-30 nt and consist of letters: \"ATCGN\"."))))
 
 (defn get-query-type
   "Returns the type of query."
@@ -256,7 +274,7 @@
    (assoc parsed-request :genomic-regions genomic-regions)))
 
 (defmethod parse-request :grna
-  [_ resolvers req]
+  [_ {:keys [sequence-resolver]} req]
   "A gRNA request is one that evaluates a set of gRNAs against the
    Guidescan databases.
 
@@ -265,4 +283,13 @@
               {:seq X2 :coords [chrX2 start-2 end-2]} ...]
       :enzyme STRING
       :organism STRING}"
-  nil)
+  (f/attempt-all
+   [parsed-request
+    (failure-vector-into-map
+     [[:enzyme (parse-req-string :enzyme req) :required]
+      [:organism (parse-req-string :organism req) :required]
+      [:query-text (parse-req-string :query-text req) :required]])
+    genomic-regions (parse-grnas sequence-resolver
+                                 (:organism parsed-request)
+                                 (:query-text parsed-request))]
+   (assoc parsed-request :genomic-regions genomic-regions)))

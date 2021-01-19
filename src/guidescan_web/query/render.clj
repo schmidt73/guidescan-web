@@ -4,18 +4,13 @@
   HTML, CSV, and JSON."
   (:require [cheshire.core :as cheshire]
             [guidescan-web.genomics.grna :as grna]
+            [guidescan-web.utils :refer [revcom]]
             [clojure.data.csv :as csv]))
 
 (def csv-header
   ["Region-name" "gRNA-ID" "gRNA-Seq" "Target-Seq" "PAM"
    "Number of off-targets" "Off-target summary" "Cutting efficiency"
    "Specificity" "Rank" "Coordinates" "Strand"])
-
-(defn revcom
-  [sequence]
-  (-> (map {\A \T \T \A \G \C \C \G \N \N} sequence)
-      (reverse)
-      (clojure.string/join)))
 
 (defn grna-to-csv-vector [genomic-region grna idx]
   (let [direction (if (= (:direction grna) :positive) "+" "-")
@@ -70,11 +65,11 @@
                    (update % :sequence revcom)
                    %)
                 grnas)])
-        processed-query)))
+        (:result processed-query))))
 
 (defmethod render-query-result [:bed :standard]
   [_ processed-query]
-  (->> processed-query
+  (->> (:result processed-query)
    (map processed-query-to-bed-entry)
    (clojure.string/join "\n")
    (str "track name=\"guideRNAs\"\n")))
@@ -86,7 +81,20 @@
      *out*
      (reduce into [csv-header]
              (mapv processed-query-to-csv-vector
-                   processed-query)))))
+                   (:result processed-query))))))
+
+(defmethod render-query-result [:json :grna]
+  [_ processed-query]
+  (cheshire/encode
+   (map (fn [grna]
+          (if (= (:direction grna) :negative)
+              (update grna :sequence revcom)
+              grna))
+        (:result processed-query))))
+
+(defmethod render-query-result :default
+  [_ _]
+  (cheshire/encode {:error "Query type not supported."}))
 
 (defn get-content-type
   [format]

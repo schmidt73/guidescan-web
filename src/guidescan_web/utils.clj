@@ -33,3 +33,9 @@
                    then))]
      `(let [temp# ~(inner bindings)]
         (if (= temp# ~if-some-else) ~else temp#)))))
+
+(defn revcom
+  [sequence]
+  (-> (map {\A \T \T \A \G \C \C \G \N \N} sequence)
+      (reverse)
+      (clojure.string/join)))

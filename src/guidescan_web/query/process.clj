@@ -6,6 +6,7 @@
             [guidescan-web.genomics.grna :as grna]
             [guidescan-web.genomics.annotations :as annotations]
             [guidescan-web.query.parsing :refer [parse-request]]
+            [guidescan-web.utils :refer [revcom]]
             [failjure.core :as f]))
 
 (defn- process-parsed-queries
@@ -90,6 +91,8 @@
   {:query-type query-type
    :result result})
 
+(ns-unmap *ns* 'process-query)
+
 (defmulti process-query
   "Process the query, returning a map of the form:
 
@@ -97,7 +100,7 @@
 
   On success or a failure object with an appropriate
   message."
-  (fn [_ req] (get req :query-type :standard)))
+  (fn [_ req] (keyword (get-in req [:params :query-type] :standard))))
 
 (defmethod process-query :standard
   [{:keys [bam-db gene-annotations gene-resolver sequence-resolver]}
@@ -126,3 +129,30 @@
      (some? topn) (map #(keep-only-top-n topn %))
      true (map vector converted-regions)
      true (wrap-result :standard))))
+
+(defn- find-grna
+  [grna intersecting-grnas]
+  (let [hamming-distance #(count (filter identity (map = %1 %2)))]
+    (first
+     (filter
+       #(or (>= 20 (hamming-distance (:region-name grna) (:sequence %)))
+            (>= 20 (hamming-distance (revcom (:region-name grna)) (:sequence %))))
+       intersecting-grnas))))
+
+(defmethod process-query :grna
+  [{:keys [bam-db gene-annotations sequence-resolver]}
+   req]
+  (f/attempt-all
+   [{:keys [enzyme
+            organism
+            genomic-regions]}
+    (parse-request :grna {:sequence-resolver sequence-resolver} req)
+    good-genomic-regions (filter #(not (:error %)) genomic-regions)
+    bad-genomic-regions (filter :error genomic-regions)
+    converted-regions (convert-regions good-genomic-regions organism false)
+    vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)]
+   (->>
+     (map find-grna good-genomic-regions vec-of-grnas)
+     (concat bad-genomic-regions)
+     (wrap-result :grna))))
+
