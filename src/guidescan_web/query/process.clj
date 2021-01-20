@@ -91,8 +91,6 @@
   {:query-type query-type
    :result result})
 
-(ns-unmap *ns* 'process-query)
-
 (defmulti process-query
   "Process the query, returning a map of the form:
 
