@@ -42,15 +42,22 @@
   HTTP Response Code: 200 OK | 404 Not Found
   Response:
   {:job-status (:completed | :failed | :pending)
+   :result-type (:grna | :standard) // ONLY WHEN COMPLETED
    :failure message}"
   [req job-queue job-id]
   (timbre/info "Job status request from " (:remote-addr req) " for id " job-id)
   (if-let [status (jobs/get-query-status job-queue job-id)]
-    (let [failure-message (when (= status :failed) (f/message (jobs/get-query job-queue job-id)))
-          json-obj {:job-status status :failure failure-message}]
-      (content-type 
-        (response (cheshire/encode json-obj))
-        (render/get-content-type :json)))
+    (if (= status :completed)
+      (let [result-type (:query-type (jobs/get-query job-queue job-id))
+            json-obj {:job-status status :result-type result-type}]
+        (content-type 
+          (response (cheshire/encode json-obj))
+          (render/get-content-type :json)))
+      (let [failure-message (when (= status :failed) (f/message (jobs/get-query job-queue job-id)))
+            json-obj {:job-status status :failure failure-message}]
+        (content-type 
+          (response (cheshire/encode json-obj))
+          (render/get-content-type :json))))
     (not-found "Job ID not found.")))
 
 (defn job-result-handler

@@ -135,8 +135,8 @@
   (let [hamming-distance #(count (filter identity (map = %1 %2)))]
     (first
      (filter
-       #(or (>= 20 (hamming-distance (:region-name grna) (:sequence %)))
-            (>= 20 (hamming-distance (revcom (:region-name grna)) (:sequence %))))
+       #(or (>= 17 (hamming-distance (:region-name grna) (:sequence %)))
+            (>= 17 (hamming-distance (revcom (:region-name grna)) (:sequence %))))
        intersecting-grnas))))
 
 (defmethod process-query :grna
@@ -153,6 +153,7 @@
     vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)]
    (->>
      (map find-grna good-genomic-regions vec-of-grnas)
+     (map #(assoc %2 :chr (get-in %1 [:coords 0])) good-genomic-regions)
      (concat bad-genomic-regions)
      (wrap-result :grna))))
 
