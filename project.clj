@@ -30,13 +30,7 @@
                     :jar-name "guidescan.jar-THIN"
                     :uberjar-name "guidescan.jar"}
              ;;;; Scripts for various maintenance tasks
-             :create-gene-db {:source-paths ^:replace ["scripts"]
-                              :uberjar-name "create-gene-db.jar"
-                              :jar-name "create-gene-db.jar-THIN"
-                              :main create-gene-db}
-             :add-organism   {:source-paths ^:replace ["scripts"]
-                              :uberjar-name "add-organism.jar"
-                              :jar-name "add-organism.jar-THIN"
-                              :main add-organism}})
-
+             :database-generation {:source-paths ^:replace ["scripts"]
+                                   :uberjar-name "db-gen.jar"
+                                   :jar-name "db-gen.jar-THIN"}})
   
