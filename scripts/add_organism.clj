@@ -15,15 +15,15 @@
 (defn- parse-gtf-attribute
   [field]
   (let [kv-re #"(?<key>\S*)\s\"(?<value>[^\"]*)\";"
-        matcher (re-matcher kv-re field)
-        attribute (transient {})]
-    (while (.find matcher)
-      (let [k (.group matcher "key")
-            v (.group matcher "value")]
-        (if (contains? attribute k)
-          (assoc! attribute k (conj (get attribute k) v))
-          (assoc! attribute k [v]))))
-    (persistent! attribute)))
+        matcher (re-matcher kv-re field)]
+    (loop [attribute (transient {})]
+      (if (.find matcher)
+        (let [k (.group matcher "key")
+              v (.group matcher "value")]
+          (if (contains? attribute k)
+            (recur (assoc! attribute k (conj (get attribute k) v)))
+            (recur (assoc! attribute k [v]))))
+        (persistent! attribute)))))
 
 (defn parse-gtf-annotation-line
   "Parses a row out of a GTF file for entry into the gene table."
@@ -60,29 +60,37 @@
   (if-let [gene-symbols (get-in annotation [:attribute "gene"])]
     (concat gene-symbols (get-in annotation [:attribute "gene_synonym"]))))
 
-(defn create-sql-record
-  [entrez-id chr start end sense gene-symbol]
-  {:entrez_id   entrez-id
-   :chromosome  chr
-   :start_pos   start
-   :end_pos     end
-   :gene_symbol gene-symbol
-   :sense       sense})
-
-(defn annotation-to-sql-records
+(defn parse-exon-info
   [annotation]
-  (if-let [entrez-id (parse-entrez-id annotation)]
-    (if-let [gene-symbols (parse-gene-symbols annotation)]
-      (if (and (some #(= (:feature_type annotation) %) ["gene" "protein"])
-               (every? #(contains? annotation %)
-                       [:chromosome :start_pos :end_pos :sense]))
-        (mapv #(create-sql-record entrez-id
-                                  (:chromosome annotation)
-                                  (:start_pos annotation)
-                                  (:end_pos annotation)
-                                  (:sense annotation)
-                                  %)
-              gene-symbols)))))
+  (if-let* [product (get-in annotation [:attribute "product" 0])
+            exon-number (get-in annotation [:attribute "exon_number" 0])]
+    [product (Integer/parseInt exon-number)]))
+
+(defn create-sql-record-exon
+  [annotation]
+  (if-let* [entrez-id (parse-entrez-id annotation)
+            [product exon-number] (parse-exon-info annotation)
+            {:keys [chromosome start_pos end_pos sense]} annotation]
+    {:entrez_id   entrez-id
+     :chromosome  chromosome
+     :start_pos   start_pos
+     :end_pos     end_pos
+     :product     product
+     :exon_number exon-number
+     :sense       sense}))
+
+(defn create-sql-records-gene
+  [annotation]
+  (if-let* [entrez-id (parse-entrez-id annotation)
+            gene-symbols (parse-gene-symbols annotation)
+            {:keys [chromosome start_pos end_pos sense]} annotation]
+    (for [gene-symbol gene-symbols]
+      {:entrez_id   entrez-id
+       :chromosome  chromosome
+       :start_pos   start_pos
+       :end_pos     end_pos
+       :gene_symbol gene-symbol
+       :sense       sense})))
 
 (defmethod fmt/format-clause :on-conflict-nothing [[op v] sqlmap]
   (str "ON CONFLICT DO NOTHING"))
@@ -90,16 +98,37 @@
 (h/defhelper on-conflict-nothing [m args]
   (assoc m :on-conflict-nothing nil))
 
+(defmulti create-sql-statement
+  "Returns a SQL statement to update the database
+  with the given annotation or nil on failure to parse."
+  (fn [annotation] (:feature_type annotation)))
+
+(defmethod create-sql-statement "gene"
+  [annotation]
+  (if-let [records (create-sql-records-gene annotation)]
+    (-> (h/insert-into :genes)
+        (h/values records)
+        (on-conflict-nothing)
+        sql/format)))
+
+(defmethod create-sql-statement "exon"
+  [annotation]
+  (if-let [record (create-sql-record-exon annotation)]
+    (-> (h/insert-into :exons)
+        (h/values [record])
+        (on-conflict-nothing)
+        sql/format)))
+
+(defmethod create-sql-statement :default
+  [_]
+  nil)
+
 (defn add-organism-to-gene-table
   [db-conn organism-gtf-file]
   (doseq [line (lazy-lines-gzip organism-gtf-file)]
     (f/attempt-all [annotation (f/try* (parse-gtf-annotation-line line))]
-       (if-let [records (annotation-to-sql-records annotation)]
-         (jdbc/execute! db-conn
-                        (-> (h/insert-into :genes)
-                            (h/values records)
-                            (on-conflict-nothing)
-                            sql/format))))))
+       (if-let [stmt (create-sql-statement annotation)]
+         (jdbc/execute! db-conn stmt)))))
 
 (defn add-organism-to-chromosome-table
   [db-conn chr2acc-file organism]
@@ -126,7 +155,7 @@
   (let [ds (jdbc/get-datasource {:jdbcUrl (nth args 0)})]
     (with-open [conn (jdbc/get-connection ds)]
       (timbre/info "Successfully retrieved connection to database")
-      (timbre/info "Adding genes to genes table from organism's GTF file.")
+      (timbre/info "Adding annotations to genes and exons tables from organism's GTF file.")
       (add-organism-to-gene-table conn (nth args 1))
       (add-organism-to-chromosome-table conn (nth args 2) (nth args 3)))))
 

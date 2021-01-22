@@ -4,7 +4,7 @@
   (:gen-class))
 
 (def drop-tables
-  "DROP TABLE IF EXISTS genes, chromosomes;")
+  "DROP TABLE IF EXISTS genes, chromosomes, exons;")
 
 (def create-chromosome-name-table
   (->> ["CREATE TABLE chromosomes (accession VARCHAR(1023) NOT NULL,"
@@ -23,6 +23,17 @@
         "                    PRIMARY KEY (gene_symbol, entrez_id));"]
        (clojure.string/join "\n")))
 
+(def create-exon-table
+  (->> ["CREATE TABLE exons (entrez_id INT NOT NULL,"
+        "                    exon_number INT NOT NULL,"
+        "                    chromosome VARCHAR(1023) NOT NULL,"
+        "                    product VARCHAR(1023),"
+        "                    sense BOOL NOT NULL,"
+        "                    start_pos INT NOT NULL,"
+        "                    end_pos INT NOT NULL,"
+        "                    PRIMARY KEY (entrez_id, exon_number));"]
+       (clojure.string/join "\n")))
+
 (defn create-db [jdbc-url]
   (with-open [conn (jdbc/get-connection (jdbc/get-datasource {:jdbcUrl jdbc-url}))]
     (timbre/info "Successfully retrieved connection to database")
@@ -31,7 +42,9 @@
     (jdbc/execute! conn [create-chromosome-name-table])
     (timbre/info "Created chromosome table.")
     (jdbc/execute! conn [create-gene-id-table])
-    (timbre/info "Created genes table.")))
+    (timbre/info "Created genes table.")
+    (jdbc/execute! conn [create-exon-table])
+    (timbre/info "Created exons table.")))
 
 (defn usage []
   (->> ["Creates an empty gene database, deleting old tables if they exist."

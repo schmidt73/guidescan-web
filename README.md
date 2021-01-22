@@ -195,7 +195,7 @@ can be removed if not necessary.
 To ensure that gene symbol names are correctly resolved, one must link
 in the `gene-symbol` database. All information about correctly
 generating this database can be found at
-[gene-db](doc/databases/gene.md). Once the DB is generated, it is linked
+[gene-db](doc/databases/intro.md). Once the DB is generated, it is linked
 in by adding the following entry to the configuration:
 
 ``` clojure
