@@ -1,4 +1,5 @@
-(ns script-utils)
+(ns script-utils
+  (:require [clojure.data.csv :as csv]))
   
 (defmacro if-let*
   "Multiple binding version of if-let"
@@ -24,3 +25,12 @@
        (java.io.InputStreamReader.)
        (java.io.BufferedReader.)
        (line-seq)))
+
+(defn read-csv-with-header
+  [fname]
+  (with-open [f (clojure.java.io/reader fname)]
+    (let [rows (csv/read-csv f)
+            header (first rows)]
+        (-> (map #(zipmap header %) (rest rows))
+            (doall)))))
+   

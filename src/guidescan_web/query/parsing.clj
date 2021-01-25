@@ -27,6 +27,17 @@
     (= "true" val)
     (f/fail "Boolean %s not found in request parameters." (str params-key)))) 
 
+(defn- parse-req-decimal
+  "Parses a decimal out of the request parameters, returning Failure
+  when the key is not in params or is not an float."
+  [params-key req]
+  (if-let [val (get (:params req) params-key)]
+    (try
+      (Double/parseDouble val)
+      (catch java.lang.NumberFormatException e
+        (f/fail "Parameter %s is decimal." (str params-key))))
+    (f/fail "Decimal %s not found in request parameters." (str params-key))))
+
 (defn- parse-req-int
   "Parses an integer out of the request parameters, returning Failure
   when the key is not in params or is not an integer."
@@ -293,3 +304,20 @@
                                  (:organism parsed-request)
                                  (:query-text parsed-request))]
    (assoc parsed-request :genomic-regions genomic-regions)))
+
+(defmethod parse-request :library
+  [_ _ req]
+  "A library design requests is one that designs a library according 
+  to some user specified parameters for a set of genes.
+  
+  Simply parses the parameters. Does not resolve gene names until
+  later."
+  (failure-vector-into-map
+   [[:enzyme (parse-req-string :enzyme req) :required]
+    [:organism (parse-req-string :organism req) :required]
+    [:query-text (parse-req-string :query-text req) :required]
+    [:num-pools (parse-req-int :num-pools req) :optional]
+    [:saturation (parse-req-int :saturation req) :optional] ; # of gRNA per gene
+    [:num-essential (parse-req-decimal :num-essential req) :optional] 
+    [:num-control (parse-req-decimal :num-control req) :optional]])) 
+   
