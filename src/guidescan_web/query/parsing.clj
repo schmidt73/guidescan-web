@@ -330,6 +330,7 @@
    [[:organism (parse-req-string :organism req) :required]
     [:query-text (parse-req-string :query-text req) :required]
     [:num-pools (parse-req-int-range 1 36 :num-pools req) :optional]
+    [:prime5-g (parse-req-bool :prime5-g req) :optional]
     [:saturation (parse-req-int-range 1 12 :saturation req) :optional] ; # of gRNA per gene
     [:num-essential (parse-req-int-range 1 1000000 :num-essential req) :optional] 
     [:num-control (parse-req-int-range 1 10000000 :num-control req) :optional]])) 

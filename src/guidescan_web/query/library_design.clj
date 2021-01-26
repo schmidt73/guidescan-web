@@ -121,7 +121,7 @@
   [library pool-num {:keys [prime5-g]}]
   (let [create-oligo #(let [[l r] (nth barcodes pool-num)]
                         (if prime5-g
-                          (str l (:prime5 adapters) "G" (subs 1 %) (:prime3 adapters) r)
+                          (str l (:prime5 adapters) "G" (subs % 1) (:prime3 adapters) r)
                           (str l (:prime5 adapters) % (:prime3 adapters) r)))
         update-guide (fn [guide]
                        (assoc guide :library_oligo (create-oligo (:libraries/grna guide))))]
@@ -149,7 +149,7 @@
   "Designs a saturation mutagenesis library using the pre-computed
   gRNA libraries found in the database."
   [db-pool query-text organism
-   {:keys [num-pools saturation num-essential num-control]}]
+   {:keys [num-pools saturation num-essential num-control prime5-g]}]
   (let [num-pools (or num-pools 1)
         saturation (or saturation 6)
         num-essential (or num-essential 0)
@@ -164,4 +164,4 @@
                        {:saturation saturation
                         :num-essential num-essential
                         :num-control num-control})
-          (insert-adapters i {})))))
+          (insert-adapters i {:prime5-g prime5-g})))))
