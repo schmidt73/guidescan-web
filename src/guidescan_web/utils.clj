@@ -34,6 +34,33 @@
      `(let [temp# ~(inner bindings)]
         (if (= temp# ~if-some-else) ~else temp#)))))
 
+(defn distinct-by
+  "Returns a lazy sequence of the elements of coll removing duplicates of (f item).
+  Returns a stateful transducer when no collection is provided."
+  {:added "1.0"
+   :static true}
+  ([f]
+   (fn [rf]
+     (let [seen (volatile! #{})]
+       (fn
+         ([] (rf))
+         ([result] (rf result))
+         ([result input]
+          (if (contains? @seen input)
+            result
+            (do (vswap! seen conj input)
+                (rf result input))))))))
+  ([f coll]
+   (let [step (fn step [xs seen]
+                (lazy-seq
+                 ((fn [[h :as xs] seen]
+                    (when-let [s (seq xs)]
+                      (if (contains? seen (f h))
+                        (recur (rest s) seen)
+                        (cons h (step (rest s) (conj seen (f h)))))))
+                  xs seen)))]
+     (step coll #{}))))
+
 (defn revcom
   [sequence]
   (-> (map {\A \T \T \A \G \C \C \G \N \N} sequence)

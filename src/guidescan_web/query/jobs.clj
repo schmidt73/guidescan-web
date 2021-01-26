@@ -8,7 +8,7 @@
 
 (defrecord JobQueue [bam-db gene-annotations
                      gene-resolver sequence-resolver
-                     jobs max-age]
+                     db-pool jobs max-age]
   component/Lifecycle
   (start [this]
     (when (nil? jobs)
@@ -69,6 +69,7 @@
          process-args {:gene-annotations (:gene-annotations job-queue)
                        :bam-db (:bam-db job-queue)
                        :gene-resolver (:gene-resolver job-queue)
+                       :db-pool (:db-pool job-queue)
                        :sequence-resolver (:sequence-resolver job-queue)}
          future-obj (future-call #(process-query process-args req))]
       (ref-set jobs

@@ -4,6 +4,7 @@
             [guidescan-web.config :as config]
             [guidescan-web.genomics.annotations :as annotations]
             [guidescan-web.bam.db :as db]
+            [guidescan-web.db-pool :as db-pool]
             [guidescan-web.genomics.resolver :as resolver]
             [guidescan-web.query.jobs :as jobs]))
 
@@ -20,7 +21,8 @@
 (defn test-system-no-www []
   (component/system-map
    :sequence-resolver (component/using (resolver/gene-resolver) [:config :gene-resolver])
-   :gene-resolver (component/using (resolver/gene-resolver) [:config])
+   :gene-resolver (component/using (resolver/gene-resolver) [:config :db-pool])
+   :db-pool (component/using (db-pool/create-db-pool) [:config])
    :bam-db (component/using (db/create-bam-db) [:config])
    :config (test-config)
    :gene-annotations (component/using (annotations/gene-annotations)

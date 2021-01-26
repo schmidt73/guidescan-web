@@ -8,7 +8,8 @@
    [org.httpkit.server :as server]
    [taoensso.timbre :as timbre]
    [guidescan-web.genomics.annotations :as annotations]
-   [guidescan-web.bam.db :as db]
+   [guidescan-web.db-pool :as db-pool]
+   [guidescan-web.bam.db :as bam-db]
    [guidescan-web.query.jobs :as jobs]
    [guidescan-web.config :as config]
    [guidescan-web.genomics.resolver :as resolver]
@@ -33,11 +34,12 @@
 
 (defn core-system [host port job-age config-file]
   (component/system-map
-   :gene-resolver (component/using (resolver/gene-resolver) [:config])
+   :gene-resolver (component/using (resolver/gene-resolver) [:config :db-pool])
    :sequence-resolver (component/using (resolver/sequence-resolver) [:config :gene-resolver])
-   :bam-db (component/using (db/create-bam-db) [:config])
+   :db-pool (component/using (db-pool/create-db-pool) [:config])
+   :bam-db (component/using (bam-db/create-bam-db) [:config])
    :web-server (component/using (web-server host port) [:config :job-queue :gene-resolver])
-   :job-queue (component/using (jobs/create-job-queue job-age) [:bam-db :gene-annotations
+   :job-queue (component/using (jobs/create-job-queue job-age) [:bam-db :gene-annotations :db-pool
                                                                 :gene-resolver :sequence-resolver])
    :gene-annotations (component/using (annotations/gene-annotations) [:config])
    :config (config/create-config config-file)))

@@ -12,6 +12,33 @@
    "Number of off-targets" "Off-target summary" "Cutting efficiency"
    "Specificity" "Rank" "Coordinates" "Strand"])
 
+(def library-csv-header
+  ["Gene_Symbol" "gRNA_ID" "gRNA_Seq" "Library_Oligo" "Pool_Id"
+   "Cfd_Score" "Native_Score" "Source" "Category"])
+
+(defn library-guide-to-csv-vector
+  [pool-num gene-sym category idx guide]
+  [gene-sym (str gene-sym "." (inc idx) "." (:libraries/source guide))
+   (:libraries/grna guide) (:library_oligo guide) (inc pool-num)
+   (:libraries/cfd_score guide) (:libraries/native_score guide)
+   (:libraries/source guide) category])
+   
+(defn pool-to-csv-vector
+  [idx pool]
+  (apply
+   concat
+   (mapv
+    (fn [entry]
+      (let [category (or (:type entry) (if (:gene entry) :gene :essential))
+            gene-symbol (case category
+                          :gene (:gene entry)
+                          :essential (get-in entry [:essential-gene :essential_genes/gene_symbol])
+                          :controls "Control")]
+        (map-indexed
+         #(library-guide-to-csv-vector idx gene-symbol category %1 %2)
+         (:guides entry))))
+    pool)))
+
 (defn grna-to-csv-vector [genomic-region grna idx]
   (let [direction (if (= (:direction grna) :positive) "+" "-")
         coords (str (first (:coords genomic-region)) ":" (:start grna) "-" (:end grna))
@@ -91,6 +118,20 @@
               (update grna :sequence revcom)
               grna))
         (:result processed-query))))
+
+(defmethod render-query-result [:json :library]
+  [_ processed-query]
+  (cheshire/encode (:result processed-query)))
+
+(defmethod render-query-result [:csv :library]
+  [_ processed-query]
+  (with-out-str
+    (->> (:result processed-query)
+        (map-indexed pool-to-csv-vector) 
+        (apply concat)
+        (vec)
+        (concat [library-csv-header])
+        (csv/write-csv *out*))))
 
 (defmethod render-query-result :default
   [_ _]

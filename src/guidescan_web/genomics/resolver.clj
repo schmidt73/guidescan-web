@@ -2,13 +2,13 @@
   "Defines a component that resolves various types of genomic names, for
   example protein names such as TP53 or sequences found in the
   organism of interest."
-  (:import (com.mchange.v2.c3p0 ComboPooledDataSource))
   (:require [guidescan-web.utils :refer :all]
             [taoensso.timbre :as timbre]
             [next.jdbc :as jdbc]
             [cheshire.core :as cheshire]
             [clj-http.client :as http]
             [honeysql.core :as sql]
+            [guidescan-web.db-pool :as db-pool]
             [guidescan-web.genomics.structure :as genome-structure]
             [honeysql.helpers :as h]
             [failjure.core :as f]
@@ -46,15 +46,6 @@
   [fasta-map]
   (->> (map #(vector (first %) (load-genome (second %))) fasta-map)
        (into {})))
-
-(defn- create-pool
-  [spec]
-  (let [cpds (doto (ComboPooledDataSource.)
-               (.setDriverClass (:classname spec))
-               (.setJdbcUrl (:jdbcUrl spec))
-               (.setMaxIdleTimeExcessConnections (* 30 60))
-               (.setMaxIdleTime (* 3 60 60)))]
-    cpds))
 
 (defn- create-entrez-id-query [organism entrez-id]
   (sql/format
@@ -99,24 +90,15 @@
 
 (defrecord GeneResolver [db-pool config]
   component/Lifecycle
-  (start [this]
-    (let [gr-map (atom this)]
-      (if-let [db-spec (:db-spec (:config config))]
-        (let [pool (create-pool db-spec)]
-          (timbre/info "Successfully initialized DB connection pool for gene name resolution.")
-          (swap! gr-map #(assoc % :db-pool pool)))
-        (timbre/warn "DB not specified, gene name resolution will not be supported."))
-     @gr-map))
-  (stop [this]
-    (.close db-pool)
-    (assoc this :db-pool nil)))
+  (start [this] this)
+  (stop [this] this))
 
 (defn gene-resolver []
   (map->GeneResolver {}))
 
 (defn resolve-gene-symbol [gene-resolver organism gene-symbol]
   (try
-    (with-open [conn (.getConnection (:db-pool gene-resolver))]
+    (with-open [conn (db-pool/get-db-conn (:db-pool gene-resolver))]
       (let [genes (jdbc/execute! conn (create-gene-symbol-query organism gene-symbol))]
         (if-not (empty? genes)
           (first genes))))
@@ -126,7 +108,7 @@
 
 (defn resolve-entrez-id [gene-resolver organism entrez-id]
   (try
-    (with-open [conn (.getConnection (:db-pool gene-resolver))]
+    (with-open [conn (db-pool/get-db-conn (:db-pool gene-resolver))]
       (let [genes (jdbc/execute! conn (create-entrez-id-query organism entrez-id))]
         (if-not (empty? genes)
           (first genes))))
@@ -136,7 +118,7 @@
 
 (defn resolve-chromosome-accession [gene-resolver organism accession]
   (try
-    (with-open [conn (.getConnection (:db-pool gene-resolver))]
+    (with-open [conn (db-pool/get-db-conn (:db-pool gene-resolver))]
       (let [genes (jdbc/execute! conn (create-chromosome-accession-query organism accession))]
         (if-not (empty? genes)
           (first genes))))
@@ -146,7 +128,7 @@
 
 (defn resolve-gene-symbol-suggestion [gene-resolver organism gene-symbol-suggestion]
   (try
-    (with-open [conn (.getConnection (:db-pool gene-resolver))]
+    (with-open [conn (db-pool/get-db-conn (:db-pool gene-resolver))]
       (let [genes (jdbc/execute! conn (create-gene-symbol-suggestions-query
                                        organism
                                        gene-symbol-suggestion))]

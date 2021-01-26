@@ -6,6 +6,7 @@
             [guidescan-web.genomics.grna :as grna]
             [guidescan-web.genomics.annotations :as annotations]
             [guidescan-web.query.parsing :refer [parse-request]]
+            [guidescan-web.query.library-design :as library-design]
             [guidescan-web.utils :refer [revcom]]
             [failjure.core :as f]))
 
@@ -155,3 +156,10 @@
      (concat bad-genomic-regions)
      (wrap-result :grna))))
 
+(defmethod process-query :library
+  [{:keys [bam-db gene-annotations sequence-resolver db-pool]}
+   req]
+  (f/attempt-all
+   [{:keys [query-text organism] :as options} (parse-request :library {} req)
+    result (library-design/design-library db-pool query-text organism options)]
+   (wrap-result :library result)))

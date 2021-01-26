@@ -38,6 +38,20 @@
         (f/fail "Parameter %s is decimal." (str params-key))))
     (f/fail "Decimal %s not found in request parameters." (str params-key))))
 
+(defn- parse-req-int-range
+  "Parses an integer out of the request parameters within a certain
+  range [start, end], returning Failure when the key is not in params
+  or is not an integer or is out of range."
+  [start end params-key req]
+  (if-let [val (get (:params req) params-key)]
+    (if-let [match (re-find #"^[0-9]+$" val)]
+      (let [x (Integer/parseInt match)]
+        (if (and (>= x start) (<= x end))
+          x
+          (f/fail "Parameter %s is outside range [%d, %d]." (str params-key) start end)))
+      (f/fail "Parameter %s is integral." (str params-key)))
+    (f/fail "Integer %s not found in request parameters." (str params-key)))) 
+
 (defn- parse-req-int
   "Parses an integer out of the request parameters, returning Failure
   when the key is not in params or is not an integer."
@@ -313,11 +327,10 @@
   Simply parses the parameters. Does not resolve gene names until
   later."
   (failure-vector-into-map
-   [[:enzyme (parse-req-string :enzyme req) :required]
-    [:organism (parse-req-string :organism req) :required]
+   [[:organism (parse-req-string :organism req) :required]
     [:query-text (parse-req-string :query-text req) :required]
-    [:num-pools (parse-req-int :num-pools req) :optional]
-    [:saturation (parse-req-int :saturation req) :optional] ; # of gRNA per gene
-    [:num-essential (parse-req-decimal :num-essential req) :optional] 
-    [:num-control (parse-req-decimal :num-control req) :optional]])) 
+    [:num-pools (parse-req-int-range 1 36 :num-pools req) :optional]
+    [:saturation (parse-req-int-range 1 12 :saturation req) :optional] ; # of gRNA per gene
+    [:num-essential (parse-req-int-range 1 1000000 :num-essential req) :optional] 
+    [:num-control (parse-req-int-range 1 10000000 :num-control req) :optional]])) 
    
