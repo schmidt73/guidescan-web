@@ -17,6 +17,7 @@
                  [org.clojure/tools.cli "1.0.194"]
                  [seancorfield/next.jdbc "1.1.610"]
                  [honeysql "1.0.444"]
+                 [dk.ative/docjure "1.14.0"]
                  [com.h2database/h2 "1.4.197"]
                  [org.postgresql/postgresql "42.2.5"]
                  [com.mchange/c3p0 "0.9.5.5"]

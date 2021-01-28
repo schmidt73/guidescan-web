@@ -7,6 +7,7 @@
             [guidescan-web.db-pool :as db-pool]
             [honeysql.helpers :as h]
             [failjure.core :as f]
+            [guidescan-web.genomics.resolver :as resolver]
             [com.stuartsierra.component :as component]))
 
 (defn- find-gene-synonyms-query
@@ -88,19 +89,19 @@
 
 (def ^:private barcodes
   (for 
-   [left  ["AGGCACTTGCTCGTACGACG"
-           "GTGTAACCCGTAGGGCACCT"    
-           "CAGCGCCAATGGGCTTTCGA"    
-           "CTACAGGTACCGGTCCTGAG"    
-           "CATGTTGCCCTGAGGCACAG"    
-           "GGTCGTCGCATCACAATGCG"]
-    right ["TTAAGGTGCCGGGCCCACAT"
-           "GTCGAAGGACTGCTCTCGAC"
-           "CGACAGGCTCTTAAGCGGCT"
-           "CGGATCGTCACGCTAGGTAC"
-           "AGCCTTTCGGGACCTAACGG"
-           "CGTCACATTGGCGCTCGAGA"]]
-   [left right]))
+   [[ln left]  [["F1" "AGGCACTTGCTCGTACGACG"]
+                ["F2" "GTGTAACCCGTAGGGCACCT"]  
+                ["F3" "CAGCGCCAATGGGCTTTCGA"]
+                ["F4" "CTACAGGTACCGGTCCTGAG"]   
+                ["F5" "CATGTTGCCCTGAGGCACAG"]   
+                ["F6" "GGTCGTCGCATCACAATGCG"]]
+    [rn right] [["R1" "TTAAGGTGCCGGGCCCACAT"]
+                ["R2" "GTCGAAGGACTGCTCTCGAC"]
+                ["R3" "CGACAGGCTCTTAAGCGGCT"]
+                ["R4" "CGGATCGTCACGCTAGGTAC"]
+                ["R5" "AGCCTTTCGGGACCTAACGG"]
+                ["R6" "CGTCACATTGGCGCTCGAGA"]]]
+   {:left left :right right :name (str ln "-" rn)}))
 
 (defn- find-guides-for-gene
   [db-pool organism gene]
@@ -119,12 +120,26 @@
 
 (defn- insert-adapters
   [library pool-num {:keys [prime5-g]}]
-  (let [create-oligo #(let [[l r] (nth barcodes pool-num)]
+  (let [create-oligo #(let [{:keys [left right]} (nth barcodes pool-num)]
                         (if prime5-g
-                          (str l (:prime5 adapters) "G" (subs % 1) (:prime3 adapters) r)
-                          (str l (:prime5 adapters) % (:prime3 adapters) r)))
+                          (str left (:prime5 adapters) "G" (subs % 1) (:prime3 adapters) right)
+                          (str left (:prime5 adapters) % (:prime3 adapters) right)))
         update-guide (fn [guide]
-                       (assoc guide :library_oligo (create-oligo (:libraries/grna guide))))]
+                       (conj guide
+                        {:library_oligo (create-oligo (:libraries/grna guide))
+                         :adapter_name (:name (nth barcodes pool-num))}))] 
+    (map (fn [entry] (update entry :guides #(map update-guide %)))
+         library)))
+
+(defn- insert-locations
+  [library organism sequence-resolver]
+  (let [update-guide
+        (fn [guide]
+          (f/if-let-ok? [coords (resolver/resolve-sequence sequence-resolver
+                                                           organism
+                                                           (:libraries/grna guide))]
+             (assoc guide :coords coords)
+             guide))]
     (map (fn [entry] (update entry :guides #(map update-guide %)))
          library)))
 
@@ -145,23 +160,42 @@
             (map #(update % :guides pick-fn) essential)
             [{:type :controls :guides controls}])))
 
+(defn design-pools
+  [db-pool sequence-resolver organism pools
+   {:keys [frac-essential frac-control saturation prime5-g]}]
+  (for [i (range (count pools))]
+    (let [pool (nth pools i)
+          num-essential (Math/round (* frac-essential (count pool)))
+          num-control (Math/round (* frac-control (count pool)))]
+      (-> (design-pool db-pool organism pool
+                       {:saturation saturation
+                        :num-essential num-essential
+                        :num-control num-control})
+          (insert-adapters i {:prime5-g prime5-g})
+          (insert-locations organism sequence-resolver)))))
+
 (defn design-library
   "Designs a saturation mutagenesis library using the pre-computed
   gRNA libraries found in the database."
-  [db-pool query-text organism
+  [db-pool sequence-resolver query-text organism
    {:keys [num-pools saturation num-essential num-control prime5-g]}]
   (let [num-pools (or num-pools 1)
         saturation (or saturation 6)
-        num-essential (or num-essential 0)
-        num-control (or num-control 0)
+        num-essential (or num-essential 0.0) ;; TODO: Fix names (as these are a fraction not a num)
+        num-control (or num-control 0.0)     ;; TODO: Fix names (as these are a fraction not a num)
         results (find-guides-for-query db-pool query-text organism)
         failed-genes (filter f/failed? results)
         successful-genes (filter f/ok? results)
         partition-size (/ (count successful-genes) num-pools)
         pools (partition-all partition-size successful-genes)]
-    (for [i (range (count pools))]
-      (-> (design-pool db-pool organism (nth pools i)
-                       {:saturation saturation
-                        :num-essential num-essential
-                        :num-control num-control})
-          (insert-adapters i {:prime5-g prime5-g})))))
+    (let [designed-pools (design-pools db-pool sequence-resolver
+                                       organism pools
+                                       {:frac-control num-control
+                                        :frac-essential num-essential
+                                        :saturation saturation
+                                        :prime5-g prime5-g})]
+      {:failed-genes failed-genes
+       :library designed-pools})))
+                                       
+    
+

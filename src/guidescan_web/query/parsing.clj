@@ -27,13 +27,16 @@
     (= "true" val)
     (f/fail "Boolean %s not found in request parameters." (str params-key)))) 
 
-(defn- parse-req-decimal
+(defn- parse-req-decimal-range
   "Parses a decimal out of the request parameters, returning Failure
   when the key is not in params or is not an float."
-  [params-key req]
+  [start end params-key req]
   (if-let [val (get (:params req) params-key)]
     (try
-      (Double/parseDouble val)
+      (let [d (Double/parseDouble val)]
+        (if (and (>= d start) (<= d end))
+          d
+          (f/fail "Parameter %s is outside range [%d, %d]." (str params-key) start end)))
       (catch java.lang.NumberFormatException e
         (f/fail "Parameter %s is decimal." (str params-key))))
     (f/fail "Decimal %s not found in request parameters." (str params-key))))
@@ -331,7 +334,7 @@
     [:query-text (parse-req-string :query-text req) :required]
     [:num-pools (parse-req-int-range 1 36 :num-pools req) :optional]
     [:prime5-g (parse-req-bool :prime5-g req) :optional]
-    [:saturation (parse-req-int-range 1 12 :saturation req) :optional] ; # of gRNA per gene
-    [:num-essential (parse-req-int-range 1 1000000 :num-essential req) :optional] 
-    [:num-control (parse-req-int-range 1 10000000 :num-control req) :optional]])) 
+    [:saturation (parse-req-int-range 1 20 :saturation req) :optional] ; # of gRNA per gene
+    [:num-essential (parse-req-decimal-range 0 1 :num-essential req) :optional] 
+    [:num-control (parse-req-decimal-range 0 1 :num-control req) :optional]])) 
    

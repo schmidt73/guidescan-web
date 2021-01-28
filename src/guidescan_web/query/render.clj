@@ -5,7 +5,10 @@
   (:require [cheshire.core :as cheshire]
             [guidescan-web.genomics.grna :as grna]
             [guidescan-web.utils :refer [revcom]]
+            [failjure.core :as f]
+            [dk.ative.docjure.spreadsheet :as excel]
             [clojure.data.csv :as csv]))
+
 
 (def csv-header
   ["Region-name" "gRNA-ID" "gRNA-Seq" "Target-Seq" "PAM"
@@ -14,16 +17,19 @@
 
 (def library-csv-header
   ["Gene_Symbol" "gRNA_ID" "gRNA_Seq" "Library_Oligo" "Pool_Id"
+   "Adapter Name" "Chromosome" "Position" "Strand"
    "Cfd_Score" "Native_Score" "Source" "Category"])
 
 (defn library-guide-to-csv-vector
   [pool-num gene-sym category idx guide]
   [gene-sym (str gene-sym "." (inc idx) "." (:libraries/source guide))
    (:libraries/grna guide) (:library_oligo guide) (inc pool-num)
+   (:adapter_name guide) (get-in guide [:coords :chr] "NA")
+   (get-in guide [:coords :pos] "NA") (get-in guide [:coords :strand] "NA")
    (:libraries/cfd_score guide) (:libraries/native_score guide)
-   (:libraries/source guide) category])
-   
-(defn pool-to-csv-vector
+   (:libraries/source guide) (str category)])
+
+(defn library-to-csv-vector
   [idx pool]
   (apply
    concat
@@ -110,6 +116,17 @@
              (mapv processed-query-to-csv-vector
                    (:result processed-query))))))
 
+(defmethod render-query-result [:excel :standard]
+  [_ processed-query]
+  (with-open [out-stream (new java.io.ByteArrayOutputStream)]
+    (->> (excel/create-workbook
+          "gRNAs"
+          (reduce into [csv-header]
+             (mapv processed-query-to-csv-vector
+                   (:result processed-query))))
+         (excel/save-workbook-into-stream! out-stream))
+    (.toByteArray out-stream)))
+
 (defmethod render-query-result [:json :grna]
   [_ processed-query]
   (cheshire/encode
@@ -125,21 +142,42 @@
 
 (defmethod render-query-result [:csv :library]
   [_ processed-query]
-  (with-out-str
-    (->> (:result processed-query)
-        (map-indexed pool-to-csv-vector) 
-        (apply concat)
-        (vec)
-        (concat [library-csv-header])
-        (csv/write-csv *out*))))
+  (let [library (get-in processed-query [:result :library])
+        failed-genes (get-in processed-query [:result :failed-genes])
+        library-rows (map-indexed library-to-csv-vector library) 
+        failed-rows (mapv #(vector (f/message %)) failed-genes)]
+    (with-out-str
+      (->> (concat
+            [library-csv-header]
+            (vec (apply concat library-rows))
+            [[""] ["Failed Genes"]]
+            failed-rows)
+           (csv/write-csv *out*)))))
+
+(defmethod render-query-result [:excel :library]
+  [_ processed-query]
+  (let [library (get-in processed-query [:result :library])
+        failed-genes (get-in processed-query [:result :failed-genes])
+        library-rows (map-indexed library-to-csv-vector library) 
+        failed-rows (mapv #(vector (f/message %)) failed-genes)]
+    (with-open [out-stream (new java.io.ByteArrayOutputStream)]
+      (->> (excel/create-workbook
+            "Library"
+            (concat [library-csv-header]
+                    (vec (apply concat library-rows)))
+            "Failed Genes"
+            (concat [["Failed Genes"]] failed-rows))
+           (excel/save-workbook-into-stream! out-stream))
+      (.toByteArray out-stream))))
 
 (defmethod render-query-result :default
   [_ _]
-  (cheshire/encode {:error "Query type not supported."}))
+  (cheshire/encode {:error "Render format not supported for query type."}))
 
 (defn get-content-type
   [format]
   (case format
     :json "application/json"
     :bed "text/bed"
-    :csv "text/csv"))
+    :csv "text/csv"
+    :excel "application/vnd.ms-excel"))

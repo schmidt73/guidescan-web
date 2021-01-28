@@ -161,5 +161,5 @@
    req]
   (f/attempt-all
    [{:keys [query-text organism] :as options} (parse-request :library {} req)
-    result (library-design/design-library db-pool query-text organism options)]
+    result (library-design/design-library db-pool sequence-resolver query-text organism options)]
    (wrap-result :library result)))

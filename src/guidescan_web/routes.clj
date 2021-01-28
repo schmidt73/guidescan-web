@@ -66,7 +66,7 @@
 
   REST API:
 
-  Endpoint: GET /job/result/:format{csv|json|bed}/:id{[0-9]+}
+  Endpoint: GET /job/result/:format{csv|json|bed|excel}/:id{[0-9]+}
   HTTP Response Code: 200 OK | 404 Not Found
   Response:
     JSON/BED/CSV containing query result"
@@ -121,7 +121,7 @@
    (ANY "/query" req (query-handler job-queue req))
    (GET "/job/status/:id{[0-9]+}" [id :as req]
         (job-status-handler req job-queue (Integer/parseInt id)))
-   (GET "/job/result/:format{csv|json|bed}/:id{[0-9]+}" [format id :as req]
+   (GET "/job/result/:format{csv|json|bed|excel}/:id{[0-9]+}" [format id :as req]
         (job-result-handler req job-queue (keyword format) (Integer/parseInt id)))
    (GET "/info/supported" req
         (supported-handler req config))
