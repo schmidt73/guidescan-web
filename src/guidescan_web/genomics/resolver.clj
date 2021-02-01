@@ -62,7 +62,7 @@
   (sql/format
    (sql/build
     :select [:genes/entrez_id :genes/gene_symbol :genes/start_pos
-             :genes/end_pos :genes/sense :chromosomes/name]
+             :genes/end_pos :genes/sense :chromosomes/name :chromosomes/accession]
     :from [:genes :chromosomes]
     :where [:and
             [:= :genes/gene_symbol gene-symbol]
@@ -189,3 +189,22 @@
         {:chr chr :distance d :pos p :strand s}))
     (f/fail "No match found for input sequence.")))
 
+(defn resolve-sequence-in-gene
+  [resolver organism gene-symbol sequence]
+  (if-let* [gene-resolver (:gene-resolver resolver)
+            {:genes/keys [start_pos end_pos] accession :chromosomes/accession chr :chromosomes/name}
+            (resolve-gene-symbol gene-resolver organism gene-symbol)
+            in-gene? (fn [{accession "chr" pos "pos"}]
+                       (and (>= pos start_pos)
+                            (<= pos end_pos)
+                            (= accession accession)))
+            url (get-in resolver [:sequence-resolvers organism :url])
+            result (resolve-sequence-raw url sequence)
+            result-in-gene (filter in-gene? result)]
+    (if (> (count result-in-gene) 1)
+      (f/fail "Multiple perfect matches found within gene. Cannot resolve sequence to unique coordinates.")
+      (if (= (count result-in-gene) 0)
+        (f/fail "No match found for input sequence within gene \"%s\"." gene-symbol)
+        (let [{d "distance" p "pos" s "strand"} (first result-in-gene)]
+          {:chr chr :distance d :pos p :strand s})))
+    (f/fail "Gene symbol \"%s\" not found." gene-symbol)))

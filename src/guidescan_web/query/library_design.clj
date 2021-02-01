@@ -135,9 +135,11 @@
   [library organism sequence-resolver]
   (let [update-guide
         (fn [guide]
-          (f/if-let-ok? [coords (resolver/resolve-sequence sequence-resolver
-                                                           organism
-                                                           (:libraries/grna guide))]
+          (f/if-let-ok? [coords (resolver/resolve-sequence-in-gene
+                                 sequence-resolver
+                                 organism
+                                 (:libraries/gene_symbol guide)
+                                 (:libraries/grna guide))]
              (assoc guide :coords coords)
              guide))]
     (map (fn [entry] (update entry :guides #(map update-guide %)))
