@@ -16,14 +16,17 @@
    "Specificity" "Rank" "Coordinates" "Strand"])
 
 (def library-csv-header
-  ["Gene_Symbol" "gRNA_ID" "gRNA_Seq" "Library_Oligo" "Pool_Id"
-   "Adapter Name" "Chromosome" "Position" "Strand"
+  ["Gene_Symbol" "gRNA_ID" "gRNA_Seq" "Library_Oligo"
+   "Standard BsmBI Forward Oligo" "Standard BsmBI Reverse Oligo"
+   "Pool_Id" "Adapter Name" "Chromosome" "Position" "Strand"
    "Cfd_Score" "Native_Score" "Source" "Category"])
 
 (defn library-guide-to-csv-vector
   [pool-num gene-sym category idx guide]
   [gene-sym (str gene-sym "." (inc idx) "." (:libraries/source guide))
-   (:libraries/grna guide) (:library_oligo guide) (inc pool-num)
+   (:libraries/grna guide) (:library_oligo guide)
+   (:forward_oligo guide) (:reverse_oligo guide)
+   (inc pool-num)
    (:adapter_name guide) (get-in guide [:coords :chr] "NA")
    (get-in guide [:coords :pos] "NA") (get-in guide [:coords :strand] "NA")
    (:libraries/cfd_score guide) (:libraries/native_score guide)
@@ -74,11 +77,14 @@
 
 (defn grna-to-bed-line
   [chr grna]
-  (let [direction (if (= (:direction grna) :positive) "+" "-")
+  (let [[direction start end]
+        (if (= (:direction grna) :positive)
+          ["+" (:start grna) (:end grna)]
+          ["-" (dec (:start grna)) (dec (:end grna))])
         name (str chr ":" (:start grna) "-" (:end grna))]
     (clojure.string/join
      "\t"
-     [chr (:start grna) (:end grna) name "0" direction])))
+     [chr start end name "0" direction])))
 
 (defn processed-query-to-bed-entry
   [[genomic-region grnas]]

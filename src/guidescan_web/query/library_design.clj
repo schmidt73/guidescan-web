@@ -103,6 +103,9 @@
                 ["R6" "CGTCACATTGGCGCTCGAGA"]]]
    {:left left :right right :name (str ln "-" rn)}))
 
+(def ^:private oligo-overhangs
+  {:left "CACC" :right "CAAA"})
+
 (defn- find-guides-for-gene
   [db-pool organism gene]
   (let [guides (find-precomputed-guides db-pool organism gene)]
@@ -127,7 +130,9 @@
         update-guide (fn [guide]
                        (conj guide
                         {:library_oligo (create-oligo (:libraries/grna guide))
-                         :adapter_name (:name (nth barcodes pool-num))}))] 
+                         :adapter_name (:name (nth barcodes pool-num))
+                         :forward_oligo (str (:left oligo-overhangs) (:libraries/grna guide)) 
+                         :reverse_oligo (str (:libraries/grna guide) (:right oligo-overhangs))}))] 
     (map (fn [entry] (update entry :guides #(map update-guide %)))
          library)))
 
