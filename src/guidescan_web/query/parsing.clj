@@ -112,13 +112,14 @@
   "Parses one line of a text file, returning a parse tree indicating
   success or failure along with an error message."
   [{:keys [gene-resolver]} organism line-number line]
-  (or (parse-chromosome line)
-      (parse-gene-symbol gene-resolver organism line)
-      (parse-entrez-id gene-resolver organism line)
-      (f/fail (str "Failed to parse: \"%s\" on line %d\n"
-                   "Line must be either of format \"chrX:start-end\","
-                   " a known gene symbol, or a known Entrez GeneID.")
-              line (+ 1 line-number))))
+  (let [line (clojure.string/trim line)]
+    (or (parse-chromosome line)
+        (parse-gene-symbol gene-resolver organism line)
+        (parse-entrez-id gene-resolver organism line)
+        (f/fail (str "Failed to parse: \"%s\" on line %d\n"
+                     "Line must be either of format \"chrX:start-end\","
+                     " a known gene symbol, or a known Entrez GeneID.")
+                line (+ 1 line-number)))))
 
 (defn- parse-gtf-line
   "Parses one line of a .gtf file, returning a parse tree indicating
