@@ -19,7 +19,8 @@
   ["Gene_Symbol" "gRNA_ID" "gRNA_Seq" "Library_Oligo"
    "Standard BsmBI Forward Oligo" "Standard BsmBI Reverse Oligo"
    "Pool_Id" "Adapter Name" "Chromosome" "Position" "Strand"
-   "Cfd_Score" "Native_Score" "Source" "Category"])
+   "Cutting Efficiency" "Specificity" "5pG Specificity"
+   "Source" "Category" "Type"])
 
 (defn library-guide-to-csv-vector
   [pool-num gene-sym category idx guide]
@@ -27,10 +28,11 @@
    (:libraries/grna guide) (:library_oligo guide)
    (:forward_oligo guide) (:reverse_oligo guide)
    (inc pool-num)
-   (:adapter_name guide) (get-in guide [:coords :chr] "NA")
-   (get-in guide [:coords :pos] "NA") (get-in guide [:coords :strand] "NA")
-   (:libraries/cfd_score guide) (:libraries/native_score guide)
-   (:libraries/source guide) (str category)])
+   (:adapter_name guide) (:libraries/chromosome guide)
+   (:libraries/position guide) (:libraries/strand guide)
+   (:libraries/cutting_efficiency guide) (:libraries/specificity guide)
+   (:libraries/specificity_5pg guide)
+   (:libraries/source guide) (str category) (:libraries/grna_type guide)])
 
 (defn library-to-csv-vector
   [idx pool]
