@@ -24,7 +24,7 @@
             :where [:= :genes/gene_symbol gene-sym])]))
 
 (defn- find-precomputed-guides-query
-  [gene-sym organism]
+  [organism gene-sym]
   (sql/format
    (sql/build
     :select :*
@@ -41,18 +41,10 @@
     :from [:libraries]
     :order-by [:%random]
     :where [:and
-            [:= :libraries/gene_symbol "safe"]
+            [:or
+             [:= :libraries/grna_type "non_targeting_control"]
+             [:= :libraries/grna_type "safe_targeting_control"]]
             [:= :libraries/organism organism]]
-    :limit n)))
-
-(defn- find-precomputed-essential-genes-query
-  [organism n]
-  (sql/format
-   (sql/build
-    :select :*
-    :from [:essential_genes]
-    :order-by [:%random]
-    :where [:= :essential_genes/organism organism]
     :limit n)))
 
 (defn- find-precomputed-guides
@@ -60,28 +52,13 @@
   symbol) and organism."
   [db-pool organism gene]
   (with-open [conn (db-pool/get-db-conn db-pool)]
-    (jdbc/execute! conn (find-precomputed-guides-query gene organism))))
+    (jdbc/execute! conn (find-precomputed-guides-query organism gene))))
 
 (defn- find-precomputed-controls
   "Randomly finds n precomputed control gRNAs."
   [db-pool organism n]
   (with-open [conn (db-pool/get-db-conn db-pool)]
     (jdbc/execute! conn (find-precomputed-controls-query organism n))))
-
-(defn- find-precomputed-essentials
-  [db-pool organism num-essentials]
-  (with-open [conn (db-pool/get-db-conn db-pool)]
-    (let [genes (jdbc/execute!
-                 conn
-                 (find-precomputed-essential-genes-query organism num-essentials))]
-      (doall
-        (for [gene genes]
-          (let [gene-sym (:essential_genes/gene_symbol gene)
-                guides
-                (->> (find-precomputed-guides-query gene-sym organism)
-                     (jdbc/execute! conn))]
-            {:essential-gene gene
-             :guides guides}))))))
 
 (def ^:private adapters
   {:prime5 "CGTCTCACACC"
@@ -136,25 +113,10 @@
     (map (fn [entry] (update entry :guides #(map update-guide %)))
          library)))
 
-(defn- insert-locations
-  [library organism sequence-resolver]
-  (let [update-guide
-        (fn [guide]
-          (f/if-let-ok? [coords (resolver/resolve-sequence-in-gene
-                                 sequence-resolver
-                                 organism
-                                 (:libraries/gene_symbol guide)
-                                 (:libraries/grna guide))]
-             (assoc guide :coords coords)
-             guide))]
-    (map (fn [entry] (update entry :guides #(map update-guide %)))
-         library)))
-
 (defn design-pool
   "Designs a pool around a set of genes given some parameters."
   [db-pool organism pool {:keys [saturation num-essential num-control]}]
-  (let [essential (find-precomputed-essentials db-pool organism num-essential)
-        controls (find-precomputed-controls db-pool organism num-control)
+  (let [controls (find-precomputed-controls db-pool organism num-control)
         pick-fn
         (fn [guides]
           (->> guides
@@ -164,11 +126,10 @@
               (reverse)
               (take saturation)))]
     (concat (map #(update % :guides pick-fn) pool)
-            (map #(update % :guides pick-fn) essential)
             [{:type :controls :guides controls}])))
 
 (defn design-pools
-  [db-pool sequence-resolver organism pools
+  [db-pool organism pools
    {:keys [frac-essential frac-control saturation prime5-g]}]
   (for [i (range (count pools))]
     (let [pool (nth pools i)
@@ -178,13 +139,12 @@
                        {:saturation saturation
                         :num-essential num-essential
                         :num-control num-control})
-          (insert-adapters i {:prime5-g prime5-g})
-          (insert-locations organism sequence-resolver)))))
+          (insert-adapters i {:prime5-g prime5-g})))))
 
 (defn design-library
   "Designs a saturation mutagenesis library using the pre-computed
   gRNA libraries found in the database."
-  [db-pool sequence-resolver query-text organism
+  [db-pool query-text organism
    {:keys [num-pools saturation num-essential num-control prime5-g]}]
   (let [num-pools (or num-pools 1)
         saturation (or saturation 6)
@@ -195,7 +155,7 @@
         successful-genes (filter f/ok? results)
         partition-size (/ (count successful-genes) num-pools)
         pools (partition-all partition-size successful-genes)]
-    (let [designed-pools (design-pools db-pool sequence-resolver
+    (let [designed-pools (design-pools db-pool 
                                        organism pools
                                        {:frac-control num-control
                                         :frac-essential num-essential
@@ -203,6 +163,3 @@
                                         :prime5-g prime5-g})]
       {:failed-genes failed-genes
        :library designed-pools})))
-                                       
-    
-
