@@ -15,8 +15,8 @@
   (:require [failjure.core :as f]
             [guidescan-web.genomics.resolver :as resolver]))
 
-(defn- name-region [[chr start end :as coord]]
-  {:region-name (str chr ":" start "-" end)
+(defn- name-region [chr-name [chr start end :as coord]]
+  {:region-name (str chr-name ":" start "-" end)
    :coords coord})
 
 (defn- parse-req-bool
@@ -103,17 +103,18 @@
       (:genes/start_pos gene) (:genes/end_pos gene)]}))
 
 (defn- parse-chromosome
-  [text]
-  (if-let [[_ chr start-str end-str] (re-find #"^(chr.*):(\d+)-(\d+)" text)]
-    (name-region
-     [chr (Integer/parseInt start-str) (Integer/parseInt end-str)])))
+  [gene-resolver organism text]
+  (if-let [[_ chr start-str end-str] (re-find #"^chr(.*):(\d+)-(\d+)" text)]
+    (if-let [accession (resolver/resolve-chromosome-name gene-resolver organism chr)]
+      (name-region chr
+       [accession (Integer/parseInt start-str) (Integer/parseInt end-str)]))))
 
 (defn- parse-line
   "Parses one line of a text file, returning a parse tree indicating
   success or failure along with an error message."
   [{:keys [gene-resolver]} organism line-number line]
   (let [line (clojure.string/trim line)]
-    (or (parse-chromosome line)
+    (or (parse-chromosome gene-resolver organism line)
         (parse-gene-symbol gene-resolver organism line)
         (parse-entrez-id gene-resolver organism line)
         (f/fail (str "Failed to parse: \"%s\" on line %d\n"
@@ -126,7 +127,7 @@
   success or failure along with an error message."
   [line-number line]
   (if-let [[_ chr start-str end-str] (re-find #"^(.+)\t.+\t.+\t(\d+)\t(\d+)\t.+\t.+\t.+\t.*" line)]
-    (name-region [chr (- (Integer/parseInt start-str) 1) (Integer/parseInt end-str)])
+    (name-region chr [chr (- (Integer/parseInt start-str) 1) (Integer/parseInt end-str)])
     (if (re-find #"(?i)track(\s|$).*" line)
       :skip
       (f/fail (str "Invalid GTF row: \"" line "\" on line " (+ 1 line-number))))))
@@ -136,7 +137,7 @@
   success or failure along with an error message."
   [line-number line]
   (if-let [[_ chr start-str end-str] (re-find #"^(\S+)\s+(\d+)\s+(\d+)(\s|$).*" line)]
-    (name-region [chr (Integer/parseInt start-str) (Integer/parseInt end-str)])
+    (name-region chr [chr (Integer/parseInt start-str) (Integer/parseInt end-str)])
     (if (re-find #"(?i)(track|browser)(\s|$).*" line)
       :skip
       (f/fail (str "Failed to parse: \"" line "\" on line " (+ 1 line-number))))))

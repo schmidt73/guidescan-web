@@ -157,7 +157,7 @@
      (wrap-result :grna))))
 
 (defmethod process-query :library
-  [{:keys [bam-db gene-annotations db-pool]}
+  [{:keys [bam-db gene-annotations resolver db-pool]}
    req]
   (f/attempt-all
    [{:keys [query-text organism] :as options} (parse-request :library {} req)

@@ -37,7 +37,7 @@
    :gene-resolver (component/using (resolver/gene-resolver) [:config :db-pool])
    :sequence-resolver (component/using (resolver/sequence-resolver) [:config :gene-resolver])
    :db-pool (component/using (db-pool/create-db-pool) [:config])
-   :bam-db (component/using (bam-db/create-bam-db) [:config])
+   :bam-db (component/using (bam-db/create-bam-db) [:config :gene-resolver])
    :web-server (component/using (web-server host port) [:config :job-queue :gene-resolver])
    :job-queue (component/using (jobs/create-job-queue job-age) [:bam-db :gene-annotations :db-pool
                                                                 :gene-resolver :sequence-resolver])

@@ -88,9 +88,33 @@
             [:= accession :chromosomes/accession]
             [:= organism :chromosomes/organism]]))) 
 
-(defrecord GeneResolver [db-pool config]
+(defn- create-chromosome-name-query [organism chr]
+  (sql/format
+   (sql/build
+    :select :*
+    :from [:chromosomes]
+    :where [:and
+            [:= chr :chromosomes/name]
+            [:= organism :chromosomes/organism]]))) 
+
+(defn create-chromosome-map [gene-resolver]
+  (try
+    (with-open [conn (db-pool/get-db-conn (:db-pool gene-resolver))]
+      (let [chrms (jdbc/execute! conn (sql/format (sql/build :select :* :from [:chromosomes])))]
+        (->> chrms
+         (group-by (fn [m] {:organism (:chromosomes/organism m) :name (:chromosomes/name m)}))
+         (map #(vector (first %) (:chromosomes/accession (first (second %)))))
+         (into {}))))
+    (catch java.sql.SQLException e
+      (timbre/error "Cannot acquire gene-resolver DB connection.")
+      nil)))
+
+(defrecord GeneResolver [db-pool config chrm-map accession-map]
   component/Lifecycle
-  (start [this] this)
+  (start [this]
+    (let [chrm-map (create-chromosome-map this)
+          accession-map (clojure.set/map-invert chrm-map)]
+      (assoc this :chrm-map chrm-map :accession-map accession-map)))
   (stop [this] this))
 
 (defn gene-resolver []
@@ -117,14 +141,10 @@
       nil)))
 
 (defn resolve-chromosome-accession [gene-resolver organism accession]
-  (try
-    (with-open [conn (db-pool/get-db-conn (:db-pool gene-resolver))]
-      (let [genes (jdbc/execute! conn (create-chromosome-accession-query organism accession))]
-        (if-not (empty? genes)
-          (first genes))))
-    (catch java.sql.SQLException e
-      (timbre/error "Cannot acquire gene-resolver DB connection.")
-      nil)))
+  (:name (get (:accession-map gene-resolver) accession)))
+
+(defn resolve-chromosome-name [gene-resolver organism chr-name]
+  (get (:chrm-map gene-resolver) {:organism organism :name chr-name}))
 
 (defn resolve-gene-symbol-suggestion [gene-resolver organism gene-symbol-suggestion]
   (try
@@ -185,7 +205,7 @@
     (if (> (count result) 1)
       (f/fail "Multiple perfect matches found. Cannot resolve sequence to unique coordinates.")
       (let [{accession "chr" d "distance" p "pos" s "strand"} (first (sort-by #(get % "distance") result))
-            {chr :chromosomes/name} (resolve-chromosome-accession gene-resolver organism accession)]
+            chr (resolve-chromosome-accession gene-resolver organism accession)]
         {:chr chr :distance d :pos p :strand s}))
     (f/fail "No match found for input sequence.")))
 

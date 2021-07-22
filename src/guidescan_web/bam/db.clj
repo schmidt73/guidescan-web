@@ -12,6 +12,7 @@
    [com.stuartsierra.component :as component]
    [taoensso.timbre :as timbre]
    [guidescan-web.config :as config]
+   [guidescan-web.genomics.resolver :as resolver]
    [guidescan-web.genomics.grna :as grna]
    [guidescan-web.genomics.structure :as genome-structure]))
 
@@ -52,37 +53,38 @@
          (reverse)
          (partition-by #(= delim %))
          (filter #(not= (list delim) %))
-         (map #(convert-offtarget-entry genome-structure %)))))
+         (map #(convert-offtarget-entry genome-structure %))
+         (map (fn [{:keys [distance coords]}]
+                (map #(assoc % :distance distance) coords))) 
+         (flatten))))
 
+(defn- resolve-accession-names [gene-resolver organism off-targets]
+  (map
+   #(let [accession (:chromosome %)
+          chr (resolver/resolve-chromosome-accession gene-resolver organism accession)]
+     (assoc % :accession accession :chromosome chr))
+   off-targets))
+                               
 (defn- parse-query-result
-  [genome-structure organism bam-record]
+  [genome-structure gene-resolver organism bam-record]
   (merge {:sequence (.getReadString bam-record)
           :start (.getAlignmentStart bam-record)
           :end (.getAlignmentEnd bam-record)
           :direction (if (.getReadNegativeStrandFlag bam-record) :negative :positive)}
          (when-let [cutting-efficiency (.getAttribute bam-record "ds")]
-           {:cutting-efficiency (Float/parseFloat cutting-efficiency)})
+           {:cutting-efficiency cutting-efficiency})
          (when-let [specificity (.getAttribute bam-record "cs")]
-           {:specificity (Float/parseFloat specificity)})
+           {:specificity specificity})
          (when-let [barray (.getAttribute bam-record "of")]
-           {:off-targets (parse-offtarget-info genome-structure barray)})))
+           {:off-targets (->> barray
+                              (parse-offtarget-info genome-structure)
+                              (resolve-accession-names gene-resolver organism))})))
 
 (defn- load-bam-reader
   [file]
   (-> (htsjdk.samtools.SamReaderFactory/makeDefault)
       (.validationStringency htsjdk.samtools.ValidationStringency/SILENT)
       (.open file)))
-
-(defn- get-genome-structure-raw
-  "Parses the genome out of a BAM comment field into a vector of
-  [chromosome-name chromosome-length]."
-  [bam-comment-field]
-  (-> (re-find #"'genome': (\[[^]]*\])" bam-comment-field)
-      (second)
-      (clojure.string/replace "'" "\"")
-      (clojure.string/replace "(" "[")
-      (clojure.string/replace ")" "]")
-      (read-string)))
 
 (defn get-genome-structure-map
   "Parses the genome structure out of all the BAM file headers into a
@@ -96,12 +98,13 @@
      (let [grna-db (config/get-grna-db-path config organism enzyme)]
        (with-open [bam-reader (load-bam-reader (io/file grna-db))]
          (as-> (.getFileHeader bam-reader) e
-           (.getComments e)
-           (nth e 3)
-           (genome-structure/get-genome-structure (get-genome-structure-raw e))
+           (.getSequenceDictionary e)
+           (.getSequences e)
+           (map #(vector (.getSequenceName %) (.getSequenceLength %)) e)
+           (genome-structure/get-genome-structure e)
            (vector {:organism organism :enzyme enzyme} e)))))))
 
-(defrecord BamDB [config genome-structure-map]
+(defrecord BamDB [config genome-structure-map gene-resolver]
   component/Lifecycle
   (start [this]
     (timbre/info "Loading genome structure map.")
@@ -123,13 +126,14 @@
    [_ (or (config/contains-grna-db-path? (:config bam-db) organism enzyme)
           (f/fail (format "Unsupported organism-enzyme pair: %s-%s" organism enzyme)))
     grna-db (config/get-grna-db-path (:config bam-db) organism enzyme)
-    genome-structure (get (:genome-structure-map bam-db) {:organism organism :enzyme enzyme})]
+    genome-structure (get (:genome-structure-map bam-db) {:organism organism :enzyme enzyme})
+    gene-resolver (:gene-resolver bam-db)]
    (try
      (with-open [bam-reader (load-bam-reader
                              (io/file grna-db))
                  iterator (.query bam-reader chromosome start-pos end-pos
                                   false)]
        (let [bam-records (doall (iterator-seq iterator))]
-         (vec (map #(parse-query-result genome-structure organism %) bam-records))))
+         (vec (map #(parse-query-result genome-structure gene-resolver organism %) bam-records))))
      (catch java.lang.IllegalArgumentException _
        (f/fail (str "Invalid chromosome \"" chromosome "\" for organism."))))))
