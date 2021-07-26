@@ -3,5 +3,6 @@
  :grna-database-path-prefix "/home/schmidt73/Desktop/guidescan-web/"
  :grna-database-path-map {{:organism "ce11" :enzyme "cas9"} "ce11.bam.sorted"}
  :sequence-resolvers {"b6" {:url "http://localhost:4500"}}
+ :logfile "test.txt"
  :db-spec {:classname "org.postgresql.Driver"
            :jdbcUrl "jdbc:postgresql:schmidt73"}}

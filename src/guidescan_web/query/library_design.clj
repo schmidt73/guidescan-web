@@ -183,6 +183,12 @@
         successful-genes (filter f/ok? results)
         partition-size (/ (count successful-genes) num-pools)
         pools (partition-all partition-size successful-genes)]
+    (timbre/info :statistics
+                 {:query-type :library-design
+                  :organism organism
+                  :num-pools num-pools
+                  :num-essential num-essential
+                  :num-control num-control})
     (let [designed-pools (design-pools db-pool 
                                        organism pools
                                        {:frac-control num-control

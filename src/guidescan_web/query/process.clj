@@ -123,13 +123,19 @@
     filter-opts {:filter-annotated filter-annotated
                  :cutting-efficiency-bounds cutting-efficiency-bounds
                  :specificity-bounds specificity-bounds}]
-   (cond->> vec-of-grnas
-     true (map #(annotate-grnas gene-annotations organism %2 %1) converted-regions)
-     true (map #(filter-results filter-opts %2 %1) converted-regions)
-     true (map #(sort-results "num-off-targets" %2 %1) converted-regions)
-     (some? topn) (map #(keep-only-top-n topn %))
-     true (map vector converted-regions)
-     true (wrap-result :standard))))
+   (do
+     (timbre/info :statistics
+                  {:num-genomic-regions (count converted-regions)
+                   :query-type :standard
+                   :organism organism
+                   :enzyme enzyme})
+     (cond->> vec-of-grnas
+       true (map #(annotate-grnas gene-annotations organism %2 %1) converted-regions)
+       true (map #(filter-results filter-opts %2 %1) converted-regions)
+       true (map #(sort-results "num-off-targets" %2 %1) converted-regions)
+       (some? topn) (map #(keep-only-top-n topn %))
+       true (map vector converted-regions)
+       true (wrap-result :standard)))))
 
 (defn- find-grna
   [grna intersecting-grnas]
@@ -143,6 +149,7 @@
 (defmethod process-query :grna
   [{:keys [bam-db gene-annotations sequence-resolver]}
    req]
+  
   (f/attempt-all
    [{:keys [enzyme
             organism
@@ -152,11 +159,18 @@
     bad-genomic-regions (filter :error genomic-regions)
     converted-regions (convert-regions good-genomic-regions organism false)
     vec-of-grnas (process-parsed-queries bam-db organism enzyme converted-regions)]
-   (->>
-     (map find-grna good-genomic-regions vec-of-grnas)
-     (map #(assoc %2 :chr (get-in %1 [:coords 0])) good-genomic-regions)
-     (concat bad-genomic-regions)
-     (wrap-result :grna))))
+   (do
+     (timbre/info :statistics
+                  {:num-successful-sequences (count good-genomic-regions)
+                   :num-unsuccessful-sequences (count bad-genomic-regions)
+                   :query-type :sequence-search
+                   :organism organism
+                   :enzyme enzyme})
+     (->>
+       (map find-grna good-genomic-regions vec-of-grnas)
+       (map #(assoc %2 :chr (get-in %1 [:coords 0])) good-genomic-regions)
+       (concat bad-genomic-regions)
+       (wrap-result :grna)))))
 
 (defmethod process-query :library
   [{:keys [bam-db gene-annotations resolver db-pool]}

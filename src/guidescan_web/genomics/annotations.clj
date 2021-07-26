@@ -53,7 +53,7 @@
       (timbre/error "Cannot acquire DB connection to load annotations.")
       nil)))
 
-(defrecord GeneAnnotations [interval-trees interval-maps config db-pool]
+(defrecord GeneAnnotations [interval-trees interval-maps db-pool]
   component/Lifecycle
   (start [this]
     (timbre/info "Constructing interval trees for gene annotations.")

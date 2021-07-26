@@ -8,12 +8,22 @@
    [org.httpkit.server :as server]
    [taoensso.timbre :as timbre]
    [guidescan-web.genomics.annotations :as annotations]
+   [taoensso.timbre.appenders.3rd-party.rolling :as rolling]
    [guidescan-web.db-pool :as db-pool]
    [guidescan-web.bam.db :as bam-db]
    [guidescan-web.query.jobs :as jobs]
    [guidescan-web.config :as config]
    [guidescan-web.genomics.resolver :as resolver]
    [guidescan-web.routes :as routes]))
+
+(defn statistics-appender
+  [filename]
+  (let [rolling (rolling/rolling-appender {:path filename :pattern :monthly})
+        rolling-fn (:fn rolling)
+        statistics-fn (fn [appender-data]
+                        (when (= :statistics (first (:vargs appender-data)))
+                          (rolling-fn appender-data)))]
+    (assoc rolling :fn statistics-fn)))
 
 (defrecord WebServer [http-server config job-queue gene-resolver host port]
   component/Lifecycle
@@ -32,6 +42,19 @@
 (defn web-server [host port]
   (map->WebServer {:host host :port port}))
 
+(defrecord Logger [config]
+  component/Lifecycle
+  (start [this]
+    (when-let [logfile (get-in config [:config :logfile])]
+      (timbre/info "Initializing logger at %s" logfile)
+      (timbre/merge-config!
+       {:appenders
+        {:statistics-appender (statistics-appender logfile)}})))
+  (stop [this]))
+
+(defn logger []
+  (map->Logger {}))
+
 (defn core-system [host port job-age config-file]
   (component/system-map
    :gene-resolver (component/using (resolver/gene-resolver) [:config :db-pool])
@@ -41,7 +64,8 @@
    :web-server (component/using (web-server host port) [:config :job-queue :gene-resolver])
    :job-queue (component/using (jobs/create-job-queue job-age) [:bam-db :gene-annotations :db-pool
                                                                 :gene-resolver :sequence-resolver])
-   :gene-annotations (component/using (annotations/gene-annotations) [:config :db-pool])
+   :gene-annotations (component/using (annotations/gene-annotations) [:db-pool])
+   :logger (component/using (logger) [:config])
    :config (config/create-config config-file)))
 
 (defn start-system
