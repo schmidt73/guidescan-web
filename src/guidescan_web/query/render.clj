@@ -91,7 +91,7 @@
 (defn processed-query-to-bed-entry
   [[genomic-region grnas]]
   (->> grnas
-   (map #(grna-to-bed-line (first (:coords genomic-region)) %))
+   (map #(grna-to-bed-line (:chromosome-name genomic-region) %))
    (clojure.string/join "\n")))
 
 (defmulti render-query-result

@@ -16,7 +16,8 @@
             [guidescan-web.genomics.resolver :as resolver]))
 
 (defn- name-region [chr-name [chr start end :as coord]]
-  {:region-name (str chr-name ":" start "-" end)
+  {:region-name (str "chr" chr-name ":" start "-" end)
+   :chromosome-name (str "chr" chr-name)
    :coords coord})
 
 (defn- parse-req-bool
@@ -90,6 +91,7 @@
     (if-let [gene (resolver/resolve-entrez-id
                    gene-resolver organism (Integer/parseInt entrez-id-str))]
       {:region-name (:genes/gene_symbol gene)
+       :chromosome-name (str "chr" (:chromosomes/name gene))
        :coords
        [(:chromosomes/accession gene)
         (:genes/start_pos gene) (:genes/end_pos gene)]})))
@@ -98,6 +100,7 @@
   [gene-resolver organism text]
   (if-let [gene (resolver/resolve-gene-symbol gene-resolver organism text)]
     {:region-name (:genes/gene_symbol gene)
+     :chromosome-name (str "chr" (:chromosomes/name gene))
      :coords
      [(:chromosomes/accession gene)
       (:genes/start_pos gene) (:genes/end_pos gene)]}))
@@ -125,9 +128,11 @@
 (defn- parse-gtf-line
   "Parses one line of a .gtf file, returning a parse tree indicating
   success or failure along with an error message."
-  [line-number line]
-  (if-let [[_ chr start-str end-str] (re-find #"^(.+)\t.+\t.+\t(\d+)\t(\d+)\t.+\t.+\t.+\t.*" line)]
-    (name-region chr [chr (- (Integer/parseInt start-str) 1) (Integer/parseInt end-str)])
+  [{:keys [gene-resolver]} organism line-number line]
+  (if-let [[_ chr start-str end-str] (re-find #"^chr(.+)\t.+\t.+\t(\d+)\t(\d+)\t.+\t.+\t.+\t.*" line)]
+    (if-let [accession (resolver/resolve-chromosome-name gene-resolver organism chr)]
+      (name-region chr [accession (- (Integer/parseInt start-str) 1) (Integer/parseInt end-str)])
+      (f/fail "Failed to resolve chromsome " chr " on line " (+ 1 line-number)))
     (if (re-find #"(?i)track(\s|$).*" line)
       :skip
       (f/fail (str "Invalid GTF row: \"" line "\" on line " (+ 1 line-number))))))
@@ -135,9 +140,11 @@
 (defn- parse-bed-line
   "Parses one line of .bed file, returning a parse tree indicating
   success or failure along with an error message."
-  [line-number line]
-  (if-let [[_ chr start-str end-str] (re-find #"^(\S+)\s+(\d+)\s+(\d+)(\s|$).*" line)]
-    (name-region chr [chr (Integer/parseInt start-str) (Integer/parseInt end-str)])
+  [{:keys [gene-resolver]} organism line-number line]
+  (if-let [[_ chr start-str end-str] (re-find #"^chr(\S+)\s+(\d+)\s+(\d+)(\s|$).*" line)]
+    (if-let [accession (resolver/resolve-chromosome-name gene-resolver organism chr)]
+      (name-region chr [accession (Integer/parseInt start-str) (Integer/parseInt end-str)])
+      (f/fail "Failed to resolve chromsome " chr " on line " (+ 1 line-number)))
     (if (re-find #"(?i)(track|browser)(\s|$).*" line)
       :skip
       (f/fail (str "Failed to parse: \"" line "\" on line " (+ 1 line-number))))))
@@ -240,14 +247,14 @@
     (parse-raw-text text (partial parse-line resolver organism) false)))
 
 (defmethod parse-genomic-regions :bed-file
-  [_ _ req]
+  [resolver organism req]
   (let [text (slurp (get-in req [:params :query-file-upload :tempfile]))]
-    (parse-raw-text text parse-bed-line)))
+    (parse-raw-text text (partial parse-bed-line resolver organism))))
 
 (defmethod parse-genomic-regions :gtf-file
-  [_ _ req]
+  [resolver organism req]
   (let [text (slurp (get-in req [:params :query-file-upload :tempfile]))]
-    (parse-raw-text text parse-gtf-line)))
+    (parse-raw-text text (partial parse-gtf-line resolver organism))))
 
 (defmethod parse-genomic-regions :unknown-file
   [_ _ _]
