@@ -47,6 +47,16 @@
             [:= :libraries/organism organism]]
     :limit n)))
 
+(defn- find-precomputed-essential-genes-query
+  [organism n]
+  (sql/format
+   (sql/build
+    :select :*
+    :from [:essential_genes]
+    :order-by [:%random]
+    :where [:= :essential_genes/organism organism]
+    :limit n)))
+
 (defn- find-precomputed-guides
   "Finds all the precomputed gRNAs for a given gene (specified by gene
   symbol) and organism."
@@ -59,6 +69,22 @@
   [db-pool organism n]
   (with-open [conn (db-pool/get-db-conn db-pool)]
     (jdbc/execute! conn (find-precomputed-controls-query organism n))))
+
+(defn- find-precomputed-essentials
+  "Randomly find n precomputed gRNAs targeting essential genes"
+  [db-pool organism num-essentials]
+  (with-open [conn (db-pool/get-db-conn db-pool)]
+    (let [genes (jdbc/execute!
+                 conn
+                 (find-precomputed-essential-genes-query organism num-essentials))]
+      (doall
+        (for [gene genes]
+          (let [gene-sym (:essential_genes/gene_symbol gene)
+                guides
+                (->> (find-precomputed-guides-query organism gene-sym)
+                     (jdbc/execute! conn))]
+            {:essential-gene gene
+             :guides guides}))))))
 
 (def ^:private adapters
   {:prime5 "CGTCTCACACC"
@@ -117,6 +143,7 @@
   "Designs a pool around a set of genes given some parameters."
   [db-pool organism pool {:keys [saturation num-essential num-control]}]
   (let [controls (find-precomputed-controls db-pool organism num-control)
+        essential (find-precomputed-essentials db-pool organism num-essential)
         pick-fn
         (fn [guides]
           (->> guides
@@ -126,6 +153,7 @@
               (reverse)
               (take saturation)))]
     (concat (map #(update % :guides pick-fn) pool)
+            (map #(update % :guides pick-fn) essential)
             [{:type :controls :guides controls}])))
 
 (defn design-pools
