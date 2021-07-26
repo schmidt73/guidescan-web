@@ -91,7 +91,7 @@
                    gene-resolver organism (Integer/parseInt entrez-id-str))]
       {:region-name (:genes/gene_symbol gene)
        :coords
-       [(str "chr" (:chromosomes/accession gene))
+       [(:chromosomes/accession gene)
         (:genes/start_pos gene) (:genes/end_pos gene)]})))
 
 (defn- parse-gene-symbol
@@ -99,7 +99,7 @@
   (if-let [gene (resolver/resolve-gene-symbol gene-resolver organism text)]
     {:region-name (:genes/gene_symbol gene)
      :coords
-     [(str "chr" (:chromosomes/accession gene))
+     [(:chromosomes/accession gene)
       (:genes/start_pos gene) (:genes/end_pos gene)]}))
 
 (defn- parse-chromosome
