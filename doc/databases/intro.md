@@ -29,4 +29,8 @@ There are several different tasks supported:
 * Updating the gene database with new organisms
     * `add_organism` target
     * instructions [here](./add_organism.md)
+* Adding gRNA libraries
+    * `add_grna_lib` target
+    * instructions [here](./add_grna_lib.md)
+
    

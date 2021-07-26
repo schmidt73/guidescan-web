@@ -4,6 +4,7 @@
   are suitable for rendering."
   (:require [guidescan-web.bam.db :as db]
             [guidescan-web.genomics.grna :as grna]
+            [taoensso.timbre :as timbre]
             [guidescan-web.genomics.annotations :as annotations]
             [guidescan-web.query.parsing :refer [parse-request]]
             [guidescan-web.query.library-design :as library-design]
@@ -57,12 +58,13 @@
 (defn annotate-grnas
   "Annotates the grnas."
   [gene-annotations organism grnas genomic-region]
+  (timbre/debug genomic-region)
   (let [cut-offset 6
-        chr (first (:coords genomic-region))
+        accession (first (:coords genomic-region))
         annotate-grna
         (fn [{start :start end :end rna :sequence dir :direction}]
           (let [check-pos (if (= dir :positive) (- end cut-offset) (+ start cut-offset))]
-            (annotations/get-annotations gene-annotations organism chr check-pos check-pos)))]
+            (annotations/get-annotations gene-annotations accession check-pos check-pos)))]
     (map #(assoc % :annotations (annotate-grna %)) grnas)))
 
 (defn split-region-flanking

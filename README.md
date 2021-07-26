@@ -207,9 +207,6 @@ Any SQL DB can be used, though the correct JDBC driver will needed to
 be added to the classpath. This can be done simply by adding the
 dependency to the `project.clj` file.
 
-Finally, there is an `:annotations-map` that takes organisms to their
-gene body annotations. This is configured on a per organism basis.
-
 All that aside, the easiest way is to take a look at the example
 config and tweak it to your needs.
 

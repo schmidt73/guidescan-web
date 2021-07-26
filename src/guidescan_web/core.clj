@@ -41,7 +41,7 @@
    :web-server (component/using (web-server host port) [:config :job-queue :gene-resolver])
    :job-queue (component/using (jobs/create-job-queue job-age) [:bam-db :gene-annotations :db-pool
                                                                 :gene-resolver :sequence-resolver])
-   :gene-annotations (component/using (annotations/gene-annotations) [:config])
+   :gene-annotations (component/using (annotations/gene-annotations) [:config :db-pool])
    :config (config/create-config config-file)))
 
 (defn start-system

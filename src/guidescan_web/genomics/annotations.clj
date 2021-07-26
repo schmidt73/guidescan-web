@@ -5,6 +5,9 @@
            htsjdk.tribble.index.interval.Interval)
   (:require [com.stuartsierra.component :as component]
             [failjure.core :as f]
+            [guidescan-web.db-pool :as db-pool]
+            [honeysql.core :as sql]
+            [next.jdbc :as jdbc]
             [taoensso.timbre :as timbre]))
 
 (defn private-field 
@@ -16,52 +19,47 @@
     (. m (setAccessible true))
     (. m (get obj))))
 
-(defn- parse-annotations-file
-  [annotations-file]
-  (->> (slurp annotations-file)
-    (clojure.string/split-lines)
-    (map #(clojure.string/split % #"\t"))
-    (map (fn [[chr start end annot]]
-             [chr (Integer/parseInt start) (Integer/parseInt end) annot]))))
-
 (defn- create-interval-tree
   [annotations]
   (let [it (new IntervalTree)]
-    (doseq [[_ start end _ :as annotation] annotations]
-       (.insert it (new Interval start end)))
+    (doseq [{:keys [:exons/start_pos :exons/end_pos]} annotations]
+       (.insert it (new Interval start_pos end_pos)))
     it))
 
 (defn- create-interval-map
   [annotations]
-  (into {} (map (fn [[chr start end annot]] [[start end] [chr annot]])
-                annotations)))
+  (->> annotations
+       (map (fn [{:keys [:exons/start_pos :exons/end_pos] :as annot}]
+                [[start_pos end_pos] annot]))
+       (into {})))
 
 (defn- get-annotations-helper
-  [it-tree it-map chr start end]
+  [it-tree it-map start end]
   (->> (.findOverlapping it-tree (new Interval start end))
     (map #(vector (private-field % "start") (private-field % "end")))
-    (map #(into (get it-map %) %))
-    (filterv #(= (first %) chr))))
+    (mapv #(get it-map %))))
 
 (defn- map-in [m f]
   (into {} (for [[k v] m] [k (f v)])))
 
-(defrecord GeneAnnotations [interval-trees interval-maps config]
+(defn load-annotations
+  [db-pool]
+  (try
+    (with-open [conn (db-pool/get-db-conn db-pool)]
+      (let [annotations (jdbc/execute! conn (sql/format (sql/build :select :* :from [:exons])))]
+        (->> annotations 
+             (group-by :exons/chromosome))))
+    (catch java.sql.SQLException e
+      (timbre/error "Cannot acquire DB connection to load annotations.")
+      nil)))
+
+(defrecord GeneAnnotations [interval-trees interval-maps config db-pool]
   component/Lifecycle
   (start [this]
     (timbre/info "Constructing interval trees for gene annotations.")
-    (when (or (nil? interval-trees) (nil? interval-maps))
-      (if-let [annotations-map (get-in config [:config :annotations-map])]
-        (let [annotations (map-in annotations-map parse-annotations-file)]
-          (if (empty? annotations)
-            (do
-              (timbre/warn ":annotations-map is empty, continuing regardless.")
-              this)
-            (assoc this :interval-maps (map-in annotations create-interval-map)
-                        :interval-trees (map-in annotations create-interval-tree))))
-        (do
-          (timbre/warn ":annotations-map not found, continuing regardless.")
-          this))))
+    (if-let [annotations (load-annotations db-pool)]
+      (assoc this :interval-maps (map-in annotations create-interval-map)
+                  :interval-trees (map-in annotations create-interval-tree))))
   (stop [this]))
 
 (defn gene-annotations []
@@ -70,11 +68,11 @@
 (defn get-annotations
   "Returns a list of annotations that overlap with
   the input region."
-  [gene-annotations organism chr start end]
-  (let [it-map (get (:interval-maps gene-annotations) organism)
-        it-tree (get (:interval-trees gene-annotations) organism)]
+  [gene-annotations accession start end]
+  (let [it-map (get (:interval-maps gene-annotations) accession)
+        it-tree (get (:interval-trees gene-annotations) accession)]
     (if (and it-map it-tree)
-      (get-annotations-helper it-tree it-map chr start end)
+      (get-annotations-helper it-tree it-map start end)
       [])))  
 
 ;; I need a macro that allows me to combine let and conditionals
