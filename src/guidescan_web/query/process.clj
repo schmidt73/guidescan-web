@@ -168,7 +168,7 @@
                    :enzyme enzyme})
      (->>
        (map find-grna good-genomic-regions vec-of-grnas)
-       (map #(assoc %2 :chr (get-in %1 [:coords 0])) good-genomic-regions)
+       (map #(assoc %2 :genomic-region %1) good-genomic-regions)
        (concat bad-genomic-regions)
        (wrap-result :grna)))))
 
