@@ -206,7 +206,7 @@
       (f/fail "Multiple perfect matches found. Cannot resolve sequence to unique coordinates.")
       (let [{accession "chr" d "distance" p "pos" s "strand"} (first (sort-by #(get % "distance") result))
             chr (resolve-chromosome-accession gene-resolver organism accession)]
-        {:chr chr :distance d :pos p :strand s}))
+        {:chr chr :distance d :pos p :strand s :accession accession}))
     (f/fail "No match found for input sequence.")))
 
 (defn resolve-sequence-in-gene

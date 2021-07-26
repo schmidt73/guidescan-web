@@ -169,12 +169,13 @@
    (parse-raw-text text line-parser true)))
 
 (defn- convert-coords
-  [seq {:keys [chr distance pos strand]}]
+  [seq {:keys [accession chr distance pos strand]}]
   (let [[start end] (if (= strand "-")
                       [(- pos (count seq)) pos]
                       [pos (+ pos (count seq))])]
     {:region-name seq
-     :coords [(str "chr" chr) start end]}))
+     :chromosome-name (str "chr" chr)
+     :coords [accession start end]}))
 
 (defn- dna-seq?
   [text]
