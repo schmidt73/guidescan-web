@@ -15,7 +15,7 @@ the supplement of our paper or as output of the script,
 Then, run the following command to populate the database,
 
 ```shell
-$ java -cp target/db-gen.jar add_grna_lib [jdbc-db-url] [csv] [organism]
+$ java -cp target/db-gen.jar add_grna_lib [jdbc-db-url] [csv] [essential-gene-list] [organism]
 ```
 
 this will create a table labeled `library`.
