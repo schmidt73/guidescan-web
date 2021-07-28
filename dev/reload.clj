@@ -1,6 +1,6 @@
-(ns reload
+ns reload
   (:require [com.stuartsierra.component :as component]
-            [clojure.tools.namespace.repl :refer [refresh refresh-all disable-reload!]]))
+            [clojure.tools.namespace.repl :refer [refresh refresh-all disable-reload!]])
 
 (disable-reload!)
 

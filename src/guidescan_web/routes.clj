@@ -115,6 +115,23 @@
      (response (cheshire/encode json-obj))
      (render/get-content-type :json))))
 
+(defn examples-handler
+  "Exposes a REST handler that returns example queries for
+  each organism
+
+  REST API:
+
+  Endpoint: GET /info/examples/
+  HTTP Response Code: 200 OK
+  JSON Response:
+  {:examples {:organism {:enzyme {:page}}}}"
+  [req config]
+  (timbre/info "Examples request from " (:remote-addr req) ".")
+  (let [json-obj (:examples (:config config))]
+    (content-type 
+     (response (cheshire/encode json-obj))
+     (render/get-content-type :json))))
+
 (defn create-routes
   [config job-queue gene-resolver]
   (routes
@@ -123,6 +140,8 @@
         (job-status-handler req job-queue id))
    (GET "/job/result/:format{csv|json|bed|excel}/:id" [format id :as req]
         (job-result-handler req job-queue (keyword format) id))
+   (GET "/info/examples" req
+        (examples-handler req config))
    (GET "/info/supported" req
         (supported-handler req config))
    (GET "/info/autocomplete" [organism symbol :as req]
