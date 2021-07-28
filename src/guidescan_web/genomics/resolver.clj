@@ -51,7 +51,7 @@
   (sql/format
    (sql/build
     :select [:genes/entrez_id :genes/gene_symbol :genes/start_pos
-             :genes/end_pos :genes/sense :chromosomes/name]
+             :genes/end_pos :genes/sense :chromosomes/name :chromosomes/accession]
     :from [:genes :chromosomes]
     :where [:and
             [:= :genes/entrez_id entrez-id]
