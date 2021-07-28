@@ -13,7 +13,7 @@
   (start [this]
     (when (nil? jobs)
       (timbre/info "Initializing job queue.")
-      (assoc this :jobs (ref {:id-counter 0})))) ; could have used atom but easier to use ref
+      (assoc this :jobs (ref {})))) ; could have used atom but easier to use ref
   (stop [this]
     (timbre/info "Cleaning up job queue.")))
 
@@ -59,13 +59,14 @@
   All fields are optional and if not specified default to 0."
   [max-age]
   (map->JobQueue {:max-age max-age}))
+
   
 (defn submit-query
   "Submits the query to the job queue and returns its ID."
   [job-queue req]
   (dosync
    (let [jobs (:jobs job-queue)
-         job-id (:id-counter @jobs)
+         job-id (str (java.util.UUID/randomUUID))
          process-args {:gene-annotations (:gene-annotations job-queue)
                        :bam-db (:bam-db job-queue)
                        :gene-resolver (:gene-resolver job-queue)
@@ -74,7 +75,6 @@
          future-obj (future-call #(process-query process-args req))]
       (ref-set jobs
         (assoc @jobs
-               :id-counter (inc job-id)
                job-id {:future future-obj
                        :timestamp (java.time.LocalDateTime/now)}))
       (schedule-job-removal job-queue job-id)
