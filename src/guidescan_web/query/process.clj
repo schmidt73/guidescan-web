@@ -68,10 +68,12 @@
     (map #(assoc % :annotations (annotate-grna %)) grnas)))
 
 (defn split-region-flanking
-  [{[chr start end] :coords r :region-name} flanking-value]
+  [{[chr start end] :coords r :region-name c :chromosome-name} flanking-value]
   [{:region-name (str r ":left-flank")
+    :chromosome-name c
     :coords [chr (- start (- flanking-value 1)) start]}
    {:region-name (str r ":right-flank")
+    :chromosome-name c
     :coords [chr end (+ end (- flanking-value 1))]}])
 
 (defn convert-regions

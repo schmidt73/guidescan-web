@@ -107,10 +107,11 @@
 
 (defn- parse-chromosome
   [gene-resolver organism text]
-  (if-let [[_ chr start-str end-str] (re-find #"^chr(.*):(\d+)-(\d+)" text)]
-    (if-let [accession (resolver/resolve-chromosome-name gene-resolver organism chr)]
-      (name-region chr
-       [accession (Integer/parseInt start-str) (Integer/parseInt end-str)]))))
+  (let [text (clojure.string/replace text "," "")]
+    (if-let [[_ chr start-str end-str] (re-find #"^chr(.*):(\d+)-(\d+)" text)]
+      (if-let [accession (resolver/resolve-chromosome-name gene-resolver organism chr)]
+        (name-region chr
+         [accession (Integer/parseInt start-str) (Integer/parseInt end-str)])))))
 
 (defn- parse-line
   "Parses one line of a text file, returning a parse tree indicating
