@@ -76,7 +76,7 @@
     (let [result (jobs/get-query job-queue job-id)]
        (when (f/ok? result)
          (content-type
-          (response (render/render-query-result format result))
+          (response (render/render-query-result req format result))
           (render/get-content-type format))))
     (not-found "Job result not found.")))
 
@@ -138,7 +138,7 @@
    (ANY "/query" req (query-handler job-queue req))
    (GET "/job/status/:id" [id :as req]
         (job-status-handler req job-queue id))
-   (GET "/job/result/:format{csv|json|bed|excel}/:id" [format id :as req]
+   (ANY "/job/result/:format{csv|json|bed|excel}/:id" [format id :as req]
         (job-result-handler req job-queue (keyword format) id))
    (GET "/info/examples" req
         (examples-handler req config))

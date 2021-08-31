@@ -22,6 +22,24 @@
    "Cutting Efficiency" "Specificity" "5pG Specificity"
    "Source" "Category" "Type"])
 
+(def sequence-csv-header
+  ["Index" "gRNA" "Chromosome" "Start" "End" "Strand"
+   "Num Off-Targets" "Off-Target Summary" "Specificity" "Cutting-Efficiency"])
+
+(defn sequence-guide-to-csv-vector
+  [guide idx]
+  [idx 
+   (if (= (:direction guide) :negative) (revcom (:sequence guide)) (:sequence guide))
+   (:chromosome-name (:genomic-region guide))
+   (:start guide)
+   (:end guide)
+   (if (= (:direction guide) :positive) "+" "-")
+   (grna/num-off-targets guide)
+   (str "2:" (grna/num-off-targets guide 2) " | "
+        "3:" (grna/num-off-targets guide 3))
+   (:specificity guide)
+   (:cutting-efficiency guide)])
+
 (defn library-guide-to-csv-vector
   [pool-num gene-sym category idx guide]
   [gene-sym (str gene-sym "." (inc idx) "." (:libraries/source guide))
@@ -95,28 +113,46 @@
    (clojure.string/join "\n")))
 
 (defmulti render-query-result
-  (fn [format processed-query] [format (:query-type processed-query)]))
-  
+  (fn [req format processed-query] [format (:query-type processed-query)]))
+
+(defn render-grnas-for-standard-json-query
+  [processed-query]
+  (let [flip-sequence #(if (= (:direction %) :negative) (update % :sequence revcom) %)
+        get-off-target-summary (fn [grnas]
+                                 (->> (:off-targets grnas)
+                                      (group-by :distance)
+                                      (into [])
+                                      (map #(vector (first %) (count (second %))))
+                                      (into {})))
+        add-off-target-summary #(assoc % :off-target-summary (get-off-target-summary %))
+        remove-off-targets #(dissoc % :off-targets)
+        render-grna (comp add-off-target-summary flip-sequence)] 
+    (cheshire/encode
+     (map (fn [[query grnas]] [query (map render-grna grnas)])
+          (:result processed-query)))))
+
+(defn render-offtargets-for-standard-json-query
+  [key processed-query])
+
 (defmethod render-query-result [:json :standard]
-  [_ processed-query]
-  (cheshire/encode
-   (map (fn [[query grnas]]
-          [query
-           (map #(if (= (:direction %) :negative)
-                   (update % :sequence revcom)
-                   %)
-                grnas)])
-        (:result processed-query))))
+  [req _ processed-query]
+  (let [type (get-in req [:params :type])
+        key (get-in req [:params :key])]
+    (if (or (nil? type) (nil? key))
+       (f/fail ":type and :key not found in request parameters.")
+       (if (= type "all")
+           (render-grnas-for-standard-json-query processed-query)
+           (render-offtargets-for-standard-json-query key processed-query)))))
 
 (defmethod render-query-result [:bed :standard]
-  [_ processed-query]
+  [_ _ processed-query]
   (->> (:result processed-query)
    (map processed-query-to-bed-entry)
    (clojure.string/join "\n")
    (str "track name=\"guideRNAs\"\n")))
 
 (defmethod render-query-result [:csv :standard]
-  [_ processed-query]
+  [_ _ processed-query]
   (with-out-str
     (csv/write-csv
      *out*
@@ -125,7 +161,7 @@
                    (:result processed-query))))))
 
 (defmethod render-query-result [:excel :standard]
-  [_ processed-query]
+  [_ _ processed-query]
   (with-open [out-stream (new java.io.ByteArrayOutputStream)]
     (->> (excel/create-workbook
           "gRNAs"
@@ -136,7 +172,7 @@
     (.toByteArray out-stream)))
 
 (defmethod render-query-result [:json :grna]
-  [_ processed-query]
+  [_ _ processed-query]
   (cheshire/encode
    (map (fn [grna]
           (if (= (:direction grna) :negative)
@@ -144,12 +180,25 @@
               grna))
         (:result processed-query))))
 
+(defmethod render-query-result [:csv :grna]
+  [_ _ processed-query]
+  (let [result (:result processed-query)
+        good-guides (filter #(not (:error %)) result)
+        bad-guides (filter #(:error %) result)
+        good-result (map-indexed
+                      #(sequence-guide-to-csv-vector  %2 %1)
+                      good-guides)
+        bad-result (map-indexed #(vector %1 (:grna %2) (:message (:error %2))) bad-guides)]
+    (with-out-str
+      (->> (reduce into [] [[sequence-csv-header] good-result bad-result])    
+           (csv/write-csv *out*)))))
+
 (defmethod render-query-result [:json :library]
-  [_ processed-query]
+  [_ _ processed-query]
   (cheshire/encode (:result processed-query)))
 
 (defmethod render-query-result [:csv :library]
-  [_ processed-query]
+  [_ _ processed-query]
   (let [library (get-in processed-query [:result :library])
         failed-genes (get-in processed-query [:result :failed-genes])
         library-rows (map-indexed library-to-csv-vector library) 
@@ -163,7 +212,7 @@
            (csv/write-csv *out*)))))
 
 (defmethod render-query-result [:excel :library]
-  [_ processed-query]
+  [_ _ processed-query]
   (let [library (get-in processed-query [:result :library])
         failed-genes (get-in processed-query [:result :failed-genes])
         library-rows (map-indexed library-to-csv-vector library) 
@@ -179,7 +228,7 @@
       (.toByteArray out-stream))))
 
 (defmethod render-query-result :default
-  [_ _]
+  [_ _ _]
   (cheshire/encode {:error "Render format not supported for query type."}))
 
 (defn get-content-type
