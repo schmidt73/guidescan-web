@@ -28,9 +28,9 @@
   "Returns the number of off-targets, optionally only considering
   ones at a fixed distance k."
   ([grna]
-   (reduce #(+ %1 (count (:coords %2))) 0 (:off-targets grna)))
+   (reduce #(+ %1 (if (:coords %2) (count (:coords %2)) 1)) 0 (:off-targets grna)))
   ([grna k]
-   (reduce #(+ %1 (if (= k (:distance %2)) (count (:coords %2)) 0))
+   (reduce #(+ %1 (if (= k (:distance %2)) (if (:coords %2) (count (:coords %2)) 1) 0))
            0 (:off-targets grna))))
 
 (s/fdef num-off-targets
