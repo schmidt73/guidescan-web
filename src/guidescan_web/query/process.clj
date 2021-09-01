@@ -170,7 +170,11 @@
                    :enzyme enzyme})
      (->>
        (map find-grna good-genomic-regions vec-of-grnas)
-       (map #(assoc %2 :genomic-region %1) good-genomic-regions)
+       (map #(if (nil? %2)
+               {:error {:message "Guide not found in Guidescan database."}
+                :grna (:region-name %1)
+                :genomic-region %1}
+               (assoc %2 :genomic-region %1)) good-genomic-regions)
        (concat bad-genomic-regions)
        (wrap-result :grna)))))
 
