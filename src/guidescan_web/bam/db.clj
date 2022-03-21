@@ -93,8 +93,7 @@
   stored in the database to relative coordinates."
   [config]
   (into {}
-   (for [organism (:available-organisms (:config config))
-         enzyme (:available-cas-enzymes (:config config))]
+   (for [{organism :organism enzyme :enzyme} (keys (:grna-database-path-map (:config config)))]
      (let [grna-db (config/get-grna-db-path config organism enzyme)]
        (with-open [bam-reader (load-bam-reader (io/file grna-db))]
          (as-> (.getFileHeader bam-reader) e
