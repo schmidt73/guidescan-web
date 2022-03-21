@@ -105,12 +105,10 @@
   Endpoint: GET /info/supported/
   HTTP Response Code: 200 OK
   JSON Response:
-  {:supported-organisms [organisms]
-   :supported-enzymes   [enzymes]}"
+  {:supported [{:organism :enzyme}]}"
   [req config]
   (timbre/info "Info request from " (:remote-addr req) ".")
-  (let [json-obj {:available-organisms (:available-organisms (:config config))
-                  :available-enzymes   (:available-cas-enzymes (:config config))}]
+  (let [json-obj {:available (keys (:grna-database-path-map (:config config)))}]
     (content-type 
      (response (cheshire/encode json-obj))
      (render/get-content-type :json))))
