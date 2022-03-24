@@ -20,7 +20,7 @@
         "                    sense BOOL NOT NULL,"
         "                    start_pos INT NOT NULL,"
         "                    end_pos INT NOT NULL,"
-        "                    PRIMARY KEY (gene_symbol, entrez_id));"]
+        "                    PRIMARY KEY (gene_symbol, chromosome, entrez_id));"]
        (clojure.string/join "\n")))
 
 (def create-exon-table
@@ -31,7 +31,7 @@
         "                    sense BOOL NOT NULL,"
         "                    start_pos INT NOT NULL,"
         "                    end_pos INT NOT NULL,"
-        "                    PRIMARY KEY (entrez_id, exon_number));"]
+        "                    PRIMARY KEY (entrez_id, chromosome, exon_number));"]
        (clojure.string/join "\n")))
 
 (defn create-db [jdbc-url]
