@@ -13,7 +13,7 @@
 (def csv-header
   ["Region-name" "gRNA-ID" "gRNA-Seq" "Target-Seq" "PAM"
    "Number of off-targets" "Off-target summary" "Cutting efficiency"
-   "Specificity" "Rank" "Coordinates" "Strand"])
+   "Specificity" "Rank" "Coordinates" "Strand" "Annotations"])
 
 (def library-csv-header
   ["Gene_Symbol" "gRNA_ID" "gRNA_Seq" "Library_Oligo"
@@ -84,12 +84,14 @@
         ots (str "2:" (grna/num-off-targets grna 2) " | "
                  "3:" (grna/num-off-targets grna 3))
         cutting-efficiency (get grna :cutting-efficiency "N/A")
+        annotations (if-let [annots (map :exons/product (get grna :annotations []))]
+                      (clojure.string/join ";" annots) "N/A")
         specificity (get grna :specificity "N/A")] 
     [(:region-name genomic-region)
      (format "%s.%d" (:region-name genomic-region) idx)
      grna-seq target-seq pam num-ots
      ots cutting-efficiency specificity
-     (inc idx) coords direction]))
+     (inc idx) coords direction annotations]))
 
 (defn processed-query-to-csv-vector
   [[genomic-region grnas]]

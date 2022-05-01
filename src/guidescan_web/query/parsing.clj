@@ -200,14 +200,14 @@
 (defn- parse-grnas
   [sequence-resolver organism text]
   (let [valid-grna? #(and (dna-seq? %)
-                         (< (count %) 30)
-                         (> (count %) 10))
+                         (<= (count %) 23)
+                         (>= (count %) 20))
         grnas (->> (clojure.string/split-lines text)
                    (map clojure.string/upper-case))]
     (if (every? valid-grna? grnas)
       (->> (map #(resolver/resolve-sequence sequence-resolver organism %) grnas)
            (map #(if (f/ok? %2) (convert-coords %1 %2) {:error %2 :grna %1}) grnas))
-      (f/fail "Input gRNAs must be between 10-30 nt and consist of letters: \"ATCGN\"."))))
+      (f/fail "Input gRNAs must be between 20-23 nt and consist of letters: \"ATCGN\"."))))
 
 (defn get-query-type
   "Returns the type of query."

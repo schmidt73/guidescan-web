@@ -141,12 +141,14 @@
 
 (defn- find-grna
   [grna intersecting-grnas]
-  (let [hamming-distance #(count (filter identity (map = %1 %2)))]
-    (first
-     (filter
-       #(or (>= 17 (hamming-distance (:region-name grna) (:sequence %)))
-            (>= 17 (hamming-distance (revcom (:region-name grna)) (:sequence %))))
-       intersecting-grnas))))
+  (let [get-seq #(if (= (:direction %) :positive) (subs (:sequence %) 0 20)
+                                                  (subs (revcom (:sequence %)) 0 20))
+        hamming-distance #(count (filter identity (map = %1 %2)))
+        close-grnas (filter 
+          #(or (<= 20 (hamming-distance (:region-name grna) (get-seq %)))
+               (<= 20 (hamming-distance (revcom (:region-name grna)) (get-seq %))))
+          intersecting-grnas)]
+    (first close-grnas)))
 
 (defmethod process-query :grna
   [{:keys [bam-db gene-annotations sequence-resolver]}
@@ -171,7 +173,8 @@
      (->>
        (map find-grna good-genomic-regions vec-of-grnas)
        (map #(if (nil? %2)
-               {:error {:message "Guide not found in Guidescan database."}
+               {:error {:message (str "Guide not found in Guidescan2 database. This is because it has "
+                                      "multiple off-targets at distance 1.")}
                 :grna (:region-name %1)
                 :genomic-region %1}
                (assoc %2 :genomic-region %1)) good-genomic-regions)
