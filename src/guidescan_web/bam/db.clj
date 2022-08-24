@@ -78,7 +78,17 @@
          (when-let [barray (.getAttribute bam-record "of")]
            {:off-targets (->> barray
                               (parse-offtarget-info genome-structure)
-                              (resolve-accession-names gene-resolver organism))})))
+                              (resolve-accession-names gene-resolver organism))})
+         (when-let [d0 (.getAttribute bam-record "k0")]
+           {:distance-0-off-targets d0})
+         (when-let [d1 (.getAttribute bam-record "k1")]
+           {:distance-1-off-targets d1})
+         (when-let [d2 (.getAttribute bam-record "k2")]
+           {:distance-2-off-targets d2})
+         (when-let [d3 (.getAttribute bam-record "k3")]
+           {:distance-3-off-targets d3})
+         (when-let [d4 (.getAttribute bam-record "k4")]
+           {:distance-4-off-targets d4})))
 
 (defn- load-bam-reader
   [file]
