@@ -108,7 +108,8 @@
   {:supported [{:organism :enzyme}]}"
   [req config]
   (timbre/info "Info request from " (:remote-addr req) ".")
-  (let [json-obj {:available (keys (:grna-database-path-map (:config config)))}]
+  (let [json-obj {:version (-> "project.clj" slurp read-string (nth 2))
+                  :available (keys (:grna-database-path-map (:config config)))}]
     (content-type 
      (response (cheshire/encode json-obj))
      (render/get-content-type :json))))
