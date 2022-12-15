@@ -182,21 +182,6 @@
   [text]
   (re-matches #"^[atcgnATCGN\\R]+$" text))
 
-(defn- parse-dna-sequence
-  "Parses the text as a DNA sequence, resolving its coordinates using
-  the sequence-resolver component."
-  [{:keys [sequence-resolver]} organism text]
-  (let [dna (-> text
-                (clojure.string/replace #"\R" "")
-                (clojure.string/upper-case))
-        pretty-dna (if (> (count dna) 40)
-                     (format "%s...%s" (subs dna 0 20) (subs dna (- (count dna) 20)))
-                     dna)]
-    (if (> (count dna) 10)
-      (f/attempt-all [coords (resolver/resolve-sequence sequence-resolver organism dna)]
-        (convert-coords dna coords))
-      (f/fail "Input DNA sequence too short."))))
-
 (defn- parse-grnas
   [sequence-resolver organism text]
   (let [valid-grna? #(and (dna-seq? %)
@@ -239,9 +224,7 @@
 (defmethod parse-genomic-regions :text
   [resolver organism req]
   (f/if-let-ok? [query-text (parse-req-string :query-text req)]
-    (if (dna-seq? query-text)
-        (parse-dna-sequence resolver organism query-text)
-        (parse-raw-text query-text (partial parse-line resolver organism) false))))
+    (parse-raw-text query-text (partial parse-line resolver organism) false)))
 
 (defmethod parse-genomic-regions :text-file
   [resolver organism req]
