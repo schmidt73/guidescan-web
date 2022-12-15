@@ -177,9 +177,9 @@
     (if-let [conns (get-in config [:config :sequence-resolvers])]
       (do
         (timbre/info "Checking sequence-resolvers")
-        (for [organism (keys conns)]
+        (doseq [organism (keys conns)]
           (if-not (resolve-sequence-raw (get-in conns [organism :url])
-                                        random-dna-seq)
+                                        (get-in conns [organism :seq] random-dna-seq))
             (timbre/warn
              (format
               "organism %s's search endpoint does not appear to be available"
